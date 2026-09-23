@@ -1,9 +1,9 @@
-﻿# CabWise MVP scope
+# CabWise MVP scope
 
 ## Objective
 Demonstrate an affordable Hindi-speaking operator companion for older construction equipment, using a phone for basic activity observations and an operator-to-supervisor workflow.
 
-## Current milestone: steps 1 and 2 only
+## Foundation: steps 1 and 2
 - Agree the scope and one four-minute demonstration journey.
 - Scaffold React, Vite, Tailwind, React Router, and FastAPI.
 - Connect the frontend to a backend health endpoint.
@@ -12,7 +12,14 @@ Demonstrate an affordable Hindi-speaking operator companion for older constructi
 - Prepare environment examples and Vercel/Render deployment configuration.
 - Verify the production build and backend locally. Public deployment and physical-phone checks require the deployment accounts and demo device.
 
-No tasks database, authentication, real telemetry, safety engine, incident storage, offline sync, lesson generator, or ML model is implemented in this milestone.
+## Current milestone: steps 3 and 4
+- Persistent SQLite/SQLModel tables, explicit source labels, nullable unknown telemetry, and idempotent fixtures.
+- OP1001/MC1001 demo profile, three tasks per site day, and historical sample machine data.
+- Persisted start shift, task start/finish timestamps, actual duration, and one active task per operator/machine.
+- Demo pre-dig acknowledgement before trenching/excavation begins.
+- Sample seatbelt replay with Hindi/visual alerts, never represented as live telemetry.
+
+Authentication, real telemetry, utility proximity, incident capture, offline sync, lesson generation, and ML remain unimplemented. Incident/lesson/completion tables are schema preparation only.
 
 ## Target MVP (future milestones)
 | Feature | Acceptance criterion |
@@ -50,7 +57,7 @@ The fixture is a future demonstration, not current functionality. Accelerated el
 - The first milestone stores or uploads no location or motion data.
 
 ## Deferred
-Shift handover, Isolation Forest, advanced fleet charts, real authentication, production integrations, and subscriptions. Offline support remains in the target MVP but is not part of steps 1 and 2.
+Shift handover, Isolation Forest, advanced fleet charts, real authentication, production integrations, and subscriptions. Offline support remains in the target MVP but is not part of steps 1?4.
 
 ## Stack decisions
-React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel, Dexie, Leaflet/Turf, Recharts, pandas/scikit-learn/joblib, and a server-side LLM integration will be added only when their features begin. Browser DeviceMotion, Geolocation, and SpeechSynthesis power the readiness checks. Vercel and Render are deployment targets.
+React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel is implemented. Dexie, Leaflet/Turf, Recharts, pandas/scikit-learn/joblib, and a server-side LLM integration will be added only when their features begin. Browser DeviceMotion, Geolocation, and SpeechSynthesis power the readiness checks. Vercel and Render are deployment targets.

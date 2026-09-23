@@ -8,3 +8,6 @@ __pycache__/
 *.db
 .vercel/
 tmp/
+*.db-*
+*.sqlite
+*.sqlite-*

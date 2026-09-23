@@ -1,12 +1,16 @@
-﻿# CabWise
+# CabWise
 
-A phone-first operator companion for older construction equipment. This repository currently implements **steps 1 and 2 only**: agreed MVP scope and the application foundation.
+A phone-first operator companion for older construction equipment. This repository currently implements **steps 1?4**: application foundation, a seeded SQLite database, and persistent daily task/basic safety workflows.
 
 Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and demo journey.
 
 ## Implemented
 - Responsive React/Vite app with Tailwind and React Router.
-- My Day landing screen and explicitly labelled future-module screens.
+- My Day with demo operator selection, start shift, and persisted task start/finish timestamps and actual durations.
+- One active task per operator and machine; duplicate requests preserve the original timestamp.
+- Demo pre-dig acknowledgement before trenching starts (no mapped utility checks yet).
+- Sample-data seatbelt replay with a visual warning and Hindi audio when a device voice is available.
+- SQLite/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, and completions. Incident and training workflows remain unimplemented.
 - FastAPI health endpoint, frontend connection indicator, and retry.
 - Tap-to-run motion, GPS, and Hindi speech checks; no sensor data uploads.
 - Deployment configuration for Vercel and Render.
@@ -32,6 +36,14 @@ npm.cmd run dev
 Open http://localhost:5173. Vite proxies `/api` to http://127.0.0.1:8000, so a local frontend environment file is optional. API docs: http://127.0.0.1:8000/docs. Click the connection indicator to retry after starting the backend.
 
 ## Validation
+Backend integration tests use temporary databases and do not reset demo data:
+```powershell
+cd backend
+.venv/Scripts/python.exe -m pip install -r requirements-dev.txt
+.venv/Scripts/python.exe -m unittest discover -s tests -v
+```
+
+Frontend:
 ```powershell
 cd frontend
 npm.cmd run build
@@ -47,7 +59,7 @@ With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` s
 5. Set Render `CORS_ORIGINS` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables, not `.env` files automatically.
 6. Open the public frontend, verify the backend indicator, and refresh a nested route such as `/device-check`.
 
-Deployments have not been created by the scaffold itself. No database or persistent disk is needed for this milestone; persistence must be configured before later database features are deployed.
+Deployments have not been created by the scaffold itself. **SQLite now requires persistent storage on Render.** Mount a persistent disk and set `DATABASE_URL` to its absolute database path (for example `sqlite:////var/data/cabwise.db`). The default local file will be lost on an ephemeral deployment. The current Blueprint does not provision a paid disk automatically. Use one backend instance for this SQLite MVP.
 
 ## Real-phone acceptance checklist
 Open `/device-check` on the intended Android phone over HTTPS. An HTTP LAN address such as `http://192.168...:5173` will not provide a secure sensor context.
@@ -64,3 +76,20 @@ Phone capability checks do not establish activity-classifier accuracy or suitabi
 ## Reference documentation
 - Tailwind Vite integration: https://tailwindcss.com/docs/installation/using-vite
 - Device motion permission and secure-context requirements: https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/requestPermission_static
+
+## Database and demo workflow
+The API creates `backend/cabwise.db` on startup and seeds OP1001, MC1001 (CAT 320D), three tasks for the site day (Asia/Kolkata), and one historical sample log. Seeding runs idempotently: existing task progress and sample replays are never reset. Each new day gets new pending tasks; an unfinished task remains visible until finished. Timestamps are returned in UTC with explicit offsets.
+
+These are authored **demo fixtures**, not the original CAT CSV dataset. The implementation PDF did not contain complete original sample tables. Source labels distinguish `demo_fixture` from `sample_replay`. Replayed seatbelt logs leave engine hours, fuel, cycles, and idle time unknown.
+
+1. Open My Day and select OP1001. Operator selection is not authentication.
+2. Tap Start shift. This records the shift and attempts Hindi playback after a user gesture. A reload preserves the shift; enable audio again for the new page session.
+3. Open the trenching pre-dig review, acknowledge that utility clearance is unavailable, and start the demo task.
+4. Return to My Day, refresh, and verify the task remains in progress. Finish it to store actual elapsed time; another task can now start.
+5. Open Safety. Replay the unfastened sample to display the Hindi warning and play it if audio is enabled. Repeating the same sample does not append duplicate log rows or replay the alert. Replay fastened, then unfastened to demonstrate a new transition.
+
+Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline mutation queues, utility proximity, and machine classifiers are not implemented.
+
+`DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment, not `.env` files automatically. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
+
+This is a demo API with no authentication or access controls; use demo data only.

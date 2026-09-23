@@ -1,7 +1,8 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, Routes, Route } from 'react-router-dom';
 import { Sun, Activity, ShieldCheck, Lightbulb, BookOpen, ArrowUpRight, ArrowRight, Wrench, LayoutDashboard, Smartphone, MapPin, Volume2, CheckCircle2, Radio, HardHat } from 'lucide-react';
 import { checkHealth } from './lib/api';
+import { WorkspaceProvider, MyDay, SafetyPage, PreDigPage } from './pages/OperatorWorkspace';
 
 const navigation = [
   ['/', 'My Day', Sun], ['/live', 'SwingSense', Activity], ['/safety', 'Safety', ShieldCheck],
@@ -9,10 +10,8 @@ const navigation = [
 ];
 const modules = {
   '/live': ['SwingSense', 'A little motion. A clearer picture.', 'Phone motion will help estimate machine activity, idle time, and work cycles.', 'Sensor classification arrives in the next milestone. You can check sensor access now.', Activity],
-  '/safety': ['Safety', 'Start with a safer shift.', 'Seatbelt alerts, mapped utility warnings, and incident reporting in one place.', 'Safety readings and incident capture are not connected yet.', ShieldCheck],
   '/insights': ['Insights', 'Understand your working day.', 'See the numbers behind idle time, task overruns, and fuel consumption.', 'Performance insights will appear once machine logs are connected.', Lightbulb],
   '/training': ['CoachCard', 'Small lessons. Better habits.', 'Personalised Hindi audio lessons based on your recent work, followed by a short quiz.', 'Lessons and training progress arrive in a later milestone.', BookOpen],
-  '/dig-safe': ['DigSafe', 'Know what is mapped below.', 'Location-based warnings around mapped underground utilities.', 'Utility mapping is planned. This prototype does not detect buried cables or control machinery.', MapPin],
   '/estimate': ['Time estimate', 'Plan the next task.', 'Task duration estimates using task type, weather, machine age, and recorded operator skill.', 'The prediction model is not connected yet.', Sun],
   '/dashboard': ['Supervisor', 'Your site, at a glance.', 'Task progress, recent alerts, incidents, and training completion.', 'Fleet totals will appear when operator data is connected.', LayoutDashboard],
 };
@@ -30,17 +29,6 @@ function BackendStatus() {
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [attempt]);
   return <button className="connection" onClick={() => setAttempt(attempt + 1)} title="Retry backend connection"><span className={`dot ${state === 'Backend connected' ? 'good' : ''}`} />{state}</button>;
-}
-
-function Home() {
-  return <>
-    <div className="page-heading"><div><p className="eyebrow">YOUR OPERATOR COMPANION</p><h1>A good day starts here.</h1><p className="muted">Namaste, operator. Let’s get ready for the shift.</p></div><span className="badge"><span className="dot" /> Foundation preview</span></div>
-    <section className="hero"><div className="hero-content"><span className="hero-tag"><HardHat size={15} /> BUILT FOR THE CAB</span><h2>Your machine.<br />Your phone.<br /><span>Your companion.</span></h2><p>A simpler way to plan work, stay aware, and learn a little every day. Even on an older machine.</p><Link className="button primary" to="/device-check">Check your phone <ArrowUpRight size={18} /></Link></div><div className="machine-art" aria-hidden="true"><svg viewBox="0 0 420 300"><defs><pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#ffffff" strokeOpacity=".07" /></pattern></defs><rect width="420" height="300" fill="url(#grid)"/><circle cx="226" cy="150" r="106" fill="none" stroke="#f8b900" strokeOpacity=".18"/><path d="M52 256H390" stroke="#6e746e"/><rect x="75" y="224" width="177" height="32" rx="16" fill="#343c37" stroke="#a0a79b" strokeWidth="2"/><path d="M92 240H233" stroke="#a0a79b" strokeWidth="4" strokeDasharray="9 6"/><path d="M89 213V180H159V142H214L238 191V221H93Z" fill="#f8b900"/><path d="M171 153H205L222 187H171Z" fill="#1c2a26"/><path d="M218 183L268 74L307 69L361 185" fill="none" stroke="#f8b900" strokeWidth="22" strokeLinejoin="round"/><path d="M237 163L276 83M311 94L344 165" stroke="#abb4ac" strokeWidth="5"/><path d="M345 179L370 183L389 220L349 222L333 202Z" fill="#f8b900"/><circle cx="267" cy="77" r="7" fill="#1c2a26"/><path d="M98 190H147M98 198H147" stroke="#1c2a26" strokeWidth="4"/></svg><span className="art-caption"><span className="dot good" /> One phone. More possibilities.</span></div></section>
-    <div className="section-heading"><h2>Ready for what’s next</h2><span>Three tools. One companion.</span></div>
-    <div className="feature-grid">{[['/live', '01', 'SwingSense', 'Turn movement into a view of your working day.', Activity], ['/dig-safe', '02', 'DigSafe', 'Stay aware of mapped utilities around your work.', ShieldCheck], ['/training', '03', 'CoachCard', 'Learn from your own work, one Hindi lesson at a time.', BookOpen]].map(([url, number, title, description, Icon]) => <Link className="feature-card" to={url} key={url}><div className="flex items-center justify-between"><span className="icon-tile"><Icon size={22}/></span><span className="number">{number}</span></div><h3>{title}</h3><p>{description}</p><span className="card-link">Explore module <ArrowRight size={16}/></span></Link>)}</div>
-    <section className="shift-panel"><div className="icon-tile"><Sun size={24}/></div><div><h3>Your task list is next</h3><p>Tasks, start and finish tracking, and shift progress will appear here once connected.</p></div><span className="badge">Coming next</span></section>
-    <p className="footnote">Hackathon prototype · Preview screens contain no live machine or safety readings.</p>
-  </>;
 }
 
 function Module({ config }) {
@@ -120,5 +108,5 @@ function DeviceCheck() {
 }
 
 export default function App() {
-  return <div className="app-shell"><aside className="sidebar"><Link to="/" className="brand"><span className="brand-mark"><HardHat size={26}/></span>CabWise<span className="brand-period">.</span></Link><div className="workspace-label">OPERATOR WORKSPACE</div><nav aria-label="Main navigation">{navigation.map(([url, title, Icon]) => <NavLink key={url} to={url} end={url === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={20}/><span>{title}</span></NavLink>)}</nav><div className="sidebar-bottom"><NavLink className="nav-item" to="/device-check"><Smartphone size={20}/><span>Device check</span></NavLink><NavLink className="nav-item" to="/estimate"><Wrench size={20}/><span>Time estimate</span></NavLink><NavLink className="nav-item" to="/dashboard"><LayoutDashboard size={20}/><span>Supervisor view</span></NavLink><div className="sidebar-note"><Radio size={18}/><p>Made for the machines<br/>that still have work to do.</p></div></div></aside><div className="main-shell"><header className="topbar"><span className="topbar-label">WORK SMARTER. EVERY SHIFT.</span><BackendStatus/><span className="avatar" aria-label="Demo operator">OP</span></header><main><Routes><Route path="/" element={<Home/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></main></div></div>;
+  return <WorkspaceProvider><div className="app-shell"><aside className="sidebar"><Link to="/" className="brand"><span className="brand-mark"><HardHat size={26}/></span>CabWise<span className="brand-period">.</span></Link><div className="workspace-label">OPERATOR WORKSPACE</div><nav aria-label="Main navigation">{navigation.map(([url, title, Icon]) => <NavLink key={url} to={url} end={url === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={20}/><span>{title}</span></NavLink>)}</nav><div className="sidebar-bottom"><NavLink className="nav-item" to="/device-check"><Smartphone size={20}/><span>Device check</span></NavLink><NavLink className="nav-item" to="/estimate"><Wrench size={20}/><span>Time estimate</span></NavLink><NavLink className="nav-item" to="/dashboard"><LayoutDashboard size={20}/><span>Supervisor view</span></NavLink><div className="sidebar-note"><Radio size={18}/><p>Made for the machines<br/>that still have work to do.</p></div></div></aside><div className="main-shell"><header className="topbar"><span className="topbar-label">WORK SMARTER. EVERY SHIFT.</span><BackendStatus/><span className="avatar" aria-label="Demo operator">OP</span></header><main><Routes><Route path="/" element={<MyDay/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></main></div></div></WorkspaceProvider>;
 }

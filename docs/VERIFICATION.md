@@ -1,15 +1,13 @@
-﻿# Foundation verification
+﻿# Verification: steps 1–4
 
 Verified locally on 2026-09-23:
-- Frontend dependency installation completed; npm reported zero vulnerabilities.
-- `npm.cmd run build` passed (Vite production bundle).
-- `/device-check` served the application entry with HTTP 200.
-- Direct backend `/api/health` returned the expected service and status.
-- The same health request passed through the Vite frontend proxy.
-- CORS returned the allow-origin header for the configured frontend and did not return it for an unlisted origin.
-- OpenAPI exposed the health endpoint.
+- Frontend production build passed with the persistent My Day, Safety, and demo pre-dig screens.
+- All 11 backend integration tests passed against temporary file-backed SQLite databases.
+- Tests cover idempotent seed/shift/task operations, timestamps and actual duration, required pre-dig acknowledgement, invalid transitions, operator assignment, concurrent requests, restart persistence, overnight task carryover, CORS, and sample replay with unknown telemetry remaining null.
 - `pip check` reported no broken requirements.
+- The live Vite proxy returned API v0.2, three pending seeded tasks, and explicitly non-live safety status.
+- Git whitespace checks passed.
 
-Not verified: rendered browser layout (no connected browser available), public Vercel/Render deployment, physical-phone motion/location, audible Hindi playback, or device voice availability offline. See README.md for deployment and real-phone checks.
+Not verified: rendered browser layout/interactions (no connected browser available), public deployment, physical-phone sensors, audible Hindi playback, and device voice availability offline. See README.md for manual checks and persistent-disk deployment requirements.
 
-Scope remains steps 1 and 2 only. Later product modules are placeholders.
+Implemented scope: steps 1–4. Utility proximity, incident capture, offline sync, motion classification, generated lessons, and predictions remain future modules.
