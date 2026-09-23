@@ -1,0 +1,32 @@
+/* CATalog: central colour, material, type, spacing and motion definitions. */
+:root {
+  --surface: #e0e5ec;
+  --ink: #202329;
+  --text: #3d4852;
+  --muted: #535e6b;
+  --accent: #ffbf00;
+  --accent-hover: #ffd04d;
+  --focus: #735500;
+  --success: #176552;
+  --danger: #96391f;
+  --warning: #775300;
+  --shadow-dark: rgba(163, 177, 198, .65);
+  --shadow-light: rgba(255, 255, 255, .6);
+  --raised: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
+  --raised-small: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+  --lifted: 12px 12px 20px rgba(163, 177, 198, .7), -12px -12px 20px rgba(255, 255, 255, .65);
+  --inset: inset 6px 6px 10px var(--shadow-dark), inset -6px -6px 10px var(--shadow-light);
+  --inset-deep: inset 10px 10px 20px rgba(163, 177, 198, .7), inset -10px -10px 20px var(--shadow-light);
+  --inset-small: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  --radius-card: 32px;
+  --radius-control: 16px;
+  --radius-pill: 999px;
+  --space-2: 8px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --font-body: 'DM Sans', 'Segoe UI', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --transition: 300ms ease-out;
+}

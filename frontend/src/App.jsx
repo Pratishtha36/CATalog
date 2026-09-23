@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Link, Routes, Route } from 'react-router-dom';
-import { Sun, Activity, ShieldCheck, Lightbulb, BookOpen, ArrowUpRight, ArrowRight, Wrench, LayoutDashboard, Smartphone, MapPin, Volume2, CheckCircle2, Radio, HardHat } from 'lucide-react';
+import { Link, Routes, Route } from 'react-router-dom';
+import { Sun, Activity, ShieldCheck, Lightbulb, BookOpen, ArrowUpRight, ArrowRight, LayoutDashboard, MapPin, Volume2, CheckCircle2 } from 'lucide-react';
 import { checkHealth } from './lib/api';
 import Live from './pages/Live';
+import AppLayout from './components/AppLayout';
 import { WorkspaceProvider, MyDay, SafetyPage, PreDigPage } from './pages/OperatorWorkspace';
 
-const navigation = [
-  ['/', 'My Day', Sun], ['/live', 'SwingSense', Activity], ['/safety', 'Safety', ShieldCheck],
-  ['/insights', 'Insights', Lightbulb], ['/training', 'Training', BookOpen],
-];
 const modules = {
   '/insights': ['Insights', 'Understand your working day.', 'See the numbers behind idle time, task overruns, and fuel consumption.', 'Performance insights will appear once machine logs are connected.', Lightbulb],
   '/training': ['CoachCard', 'Small lessons. Better habits.', 'Personalised Hindi audio lessons based on your recent work, followed by a short quiz.', 'Lessons and training progress arrive in a later milestone.', BookOpen],
@@ -108,5 +105,5 @@ function DeviceCheck() {
 }
 
 export default function App() {
-  return <WorkspaceProvider><div className="app-shell"><aside className="sidebar"><Link to="/" className="brand"><span className="brand-mark"><HardHat size={26}/></span>CabWise<span className="brand-period">.</span></Link><div className="workspace-label">OPERATOR WORKSPACE</div><nav aria-label="Main navigation">{navigation.map(([url, title, Icon]) => <NavLink key={url} to={url} end={url === '/'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><Icon size={20}/><span>{title}</span></NavLink>)}</nav><div className="sidebar-bottom"><NavLink className="nav-item" to="/device-check"><Smartphone size={20}/><span>Device check</span></NavLink><NavLink className="nav-item" to="/estimate"><Wrench size={20}/><span>Time estimate</span></NavLink><NavLink className="nav-item" to="/dashboard"><LayoutDashboard size={20}/><span>Supervisor view</span></NavLink><div className="sidebar-note"><Radio size={18}/><p>Made for the machines<br/>that still have work to do.</p></div></div></aside><div className="main-shell"><header className="topbar"><span className="topbar-label">WORK SMARTER. EVERY SHIFT.</span><BackendStatus/><span className="avatar" aria-label="Demo operator">OP</span></header><main><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></main></div></div></WorkspaceProvider>;
+  return <WorkspaceProvider><AppLayout connection={<BackendStatus/>}><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></AppLayout></WorkspaceProvider>;
 }
