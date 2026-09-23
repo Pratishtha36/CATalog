@@ -7,6 +7,7 @@ import audioManifest from '../lib/safetyAudioManifest.json';
 import { createSafetyAudioPlayer } from '../lib/safetyAudioPlayer';
 
 const Workspace = createContext(null);
+export const useOperatorWorkspace = () => useContext(Workspace);
 const names = { pending: 'Ready to start', in_progress: 'In progress', completed: 'Completed' };
 const timeLabel = value => value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
 const duration = minutes => minutes < 1 ? `${Math.round(minutes * 60)} sec` : `${minutes.toFixed(1)} min`;

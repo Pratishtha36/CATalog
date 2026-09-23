@@ -1,4 +1,4 @@
-﻿const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 export async function request(path, options = {}) {
   const controller = new AbortController();
@@ -10,7 +10,7 @@ export async function request(path, options = {}) {
       signal: options.signal || controller.signal,
     });
     const body = await response.json();
-    if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : `Request failed (${response.status})`);
+    if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : Array.isArray(body.detail) ? body.detail.slice(0, 3).map(item => item.msg).join('; ') : `Request failed (${response.status})`);
     return body;
   } catch (error) {
     if (error.name === 'AbortError') throw new Error('The request timed out. Refresh to check the saved state before trying again.');

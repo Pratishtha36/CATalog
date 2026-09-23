@@ -12,14 +12,14 @@ Demonstrate an affordable Hindi-speaking operator companion for older constructi
 - Prepare environment examples and Vercel/Render deployment configuration.
 - Verify the production build and backend locally. Public deployment and physical-phone checks require the deployment accounts and demo device.
 
-## Current milestone: steps 3 and 4
+## Persistence and tasks: steps 3 and 4
 - Persistent SQLite/SQLModel tables, explicit source labels, nullable unknown telemetry, and idempotent fixtures.
 - OP1001/MC1001 demo profile, three tasks per site day, and historical sample machine data.
 - Persisted start shift, task start/finish timestamps, actual duration, and one active task per operator/machine.
 - Demo pre-dig acknowledgement before trenching/excavation begins.
 - Sample seatbelt replay with Hindi/visual alerts, never represented as live telemetry.
 
-Authentication, real telemetry, utility proximity, incident capture, offline sync, lesson generation, and ML remain unimplemented. Incident/lesson/completion tables are schema preparation only.
+Authentication, machine ECU telemetry, utility proximity, incident capture, task/incident offline sync, and lesson generation remain unimplemented. Incident/lesson/completion tables are schema preparation only.
 
 ## Target MVP (future milestones)
 | Feature | Acceptance criterion |
@@ -57,7 +57,14 @@ The fixture is a future demonstration, not current functionality. Accelerated el
 - The first milestone stores or uploads no location or motion data.
 
 ## Deferred
-Shift handover, Isolation Forest, advanced fleet charts, real authentication, production integrations, and subscriptions. Offline support remains in the target MVP but is not part of steps 1?4.
+Shift handover, Isolation Forest, advanced fleet charts, real authentication, production integrations, and subscriptions. Offline support remains in the target MVP but is not part of steps 1-4.
 
 ## Stack decisions
-React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel is implemented. Dexie, Leaflet/Turf, Recharts, pandas/scikit-learn/joblib, and a server-side LLM integration will be added only when their features begin. Browser DeviceMotion, Geolocation, and SpeechSynthesis power the readiness checks. Vercel and Render are deployment targets.
+React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel is implemented. Dexie and scikit-learn are implemented for motion storage/training. Leaflet/Turf, Recharts, and a server-side LLM integration remain future additions. Browser DeviceMotion, Geolocation, and SpeechSynthesis power the readiness checks. Vercel and Render are deployment targets.
+
+## Current milestone: steps 5 and 6
+- Phone acceleration/rotation capture with explicit permission, gap handling, foreground-only capture, observed sample rate, and rule-based activity estimates.
+- Debounced cycle counting; idle inferred only when the operator confirms engine-running. Phone motion cannot distinguish engine-off from idle by itself.
+- Clearly labelled laptop simulator, local motion checkpoints/queue, and idempotent machine-log ingestion.
+- Manually labelled raw recordings, CSV export, Random Forest training, grouped evaluation, local JSON forest inference and rules fallback.
+- A synthetic-only trained demonstration model, excluded from phone inference. Real phone recording collection and field validation require the demo device and remain outstanding.

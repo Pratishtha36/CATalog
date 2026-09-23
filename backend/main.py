@@ -1,4 +1,4 @@
-﻿"""CabWise demo API: persistent tasks and explicit sample-data safety replay."""
+"""CabWise demo API: persistent tasks and explicit sample-data safety replay."""
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -14,6 +14,7 @@ from sqlmodel import Session, SQLModel, select
 from database import make_engine, site_today
 from models import Machine, MachineLog, Operator, Shift, Task, utcnow
 from seed import seed_demo
+from motion import build_motion_router
 
 
 class OperatorAction(BaseModel):
@@ -39,7 +40,7 @@ def serialize(value):
             for key, item in value.model_dump().items()}
 
 
-def create_app(database_url=None):
+def create_app(database_url=None, model_dir=None):
     engine = make_engine(database_url)
 
     @asynccontextmanager
@@ -49,7 +50,7 @@ def create_app(database_url=None):
         yield
         engine.dispose()
 
-    app = FastAPI(title='CabWise API', version='0.2.0', lifespan=lifespan)
+    app = FastAPI(title='CabWise API', version='0.3.0', lifespan=lifespan)
     app.state.engine = engine
     origins = [origin.strip().rstrip('/') for origin in os.getenv(
         'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if origin.strip()]
@@ -70,7 +71,7 @@ def create_app(database_url=None):
         return session.get(Shift, f'{operator_id}:{site_today().isoformat()}')
 
     def safety(session, operator_id):
-        row = session.exec(select(MachineLog).where(MachineLog.operator_id == operator_id)
+        row = session.exec(select(MachineLog).where(MachineLog.operator_id == operator_id, MachineLog.seatbelt_status.is_not(None))
                            .order_by(MachineLog.timestamp.desc(), MachineLog.id.desc())).first()
         return {'operator_id': operator_id, 'seatbelt_status': row.seatbelt_status if row else None,
                 'data_source': row.data_source if row else None,
@@ -80,7 +81,7 @@ def create_app(database_url=None):
     @app.get('/api/health')
     def health(session: Session = Depends(session_dependency)):
         session.execute(text('SELECT 1'))
-        return {'status': 'ok', 'service': 'cabwise-api', 'version': '0.2.0'}
+        return {'status': 'ok', 'service': 'cabwise-api', 'version': '0.3.0'}
 
     @app.get('/api/operators')
     def operators(session: Session = Depends(session_dependency)):
@@ -198,6 +199,7 @@ def create_app(database_url=None):
             session.commit()
         return safety(session, body.operator_id)
 
+    app.include_router(build_motion_router(engine, model_dir))
     return app
 
 

@@ -11,3 +11,4 @@ tmp/
 *.db-*
 *.sqlite
 *.sqlite-*
+backend/ml/artifacts/phone-model.json

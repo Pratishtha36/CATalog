@@ -106,3 +106,13 @@ class Completion(SQLModel, table=True):
     lesson_id: str = Field(foreign_key='lessons.id')
     score: int
     completed_at: datetime = Field(default_factory=utcnow)
+
+class MotionBatch(SQLModel, table=True):
+    __tablename__ = 'motion_batches'
+    __table_args__ = (Index('unique_motion_session_sequence', 'session_id', 'sequence', unique=True),)
+    id: str = Field(primary_key=True, foreign_key='machine_logs.id')
+    session_id: str
+    sequence: int
+    operator_id: str = Field(foreign_key='operators.operator_id', index=True)
+    source: str
+    payload: dict = Field(sa_column=Column(JSON, nullable=False))

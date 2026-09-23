@@ -1,6 +1,6 @@
 # CabWise
 
-A phone-first operator companion for older construction equipment. This repository currently implements **steps 1?4**: application foundation, a seeded SQLite database, and persistent daily task/basic safety workflows.
+A phone-first operator companion for older construction equipment. This repository implements **steps 1–6**: application foundation, a seeded SQLite database, persistent daily task/basic safety workflows, SwingSense motion capture, and a labelled-recording classifier training workflow. Real-phone data collection and field accuracy validation remain outstanding.
 
 Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and demo journey.
 
@@ -88,7 +88,7 @@ These are authored **demo fixtures**, not the original CAT CSV dataset. The impl
 4. Return to My Day, refresh, and verify the task remains in progress. Finish it to store actual elapsed time; another task can now start.
 5. Open Safety. Replay the unfastened sample to display the Hindi warning and play it if audio is enabled. Repeating the same sample does not append duplicate log rows or replay the alert. Replay fastened, then unfastened to demonstrate a new transition.
 
-Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline mutation queues, utility proximity, and machine classifiers are not implemented.
+Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Task/incident offline queues and utility proximity are not implemented. SwingSense has its own durable motion queue and classifier workflow described below.
 
 `DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment, not `.env` files automatically. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
 
@@ -115,3 +115,54 @@ Use `--language pa-IN` to regenerate Punjabi only. The generator hashes prompt t
 Run `npm.cmd test` from `frontend` to verify asset coverage, text consistency, and playback/error handling without installed voices. Run `npm.cmd run build` to include the clips in the production output.
 
 References: https://gtts.readthedocs.io/en/stable/module.html and https://github.com/pndurette/gTTS
+
+## SwingSense: steps 5 and 6
+Open `/live` after starting a shift in My Day.
+
+### Try it on a Windows laptop
+1. Choose **Laptop simulator (synthetic)**. This is deliberately separate from real phone input.
+2. Confirm the simulated engine-running checkbox if you want idle estimates. Choose threshold rules or the synthetic demo Random Forest.
+3. Start capture. Hold **dig**, then **swing**, then **dig**, at least 5 seconds each, to see an estimated cycle. The first estimate needs two complete windows.
+4. Stop & save. Check the queue count and expand the latest observation to see CAT-shaped columns. Fuel, engine hours, seatbelt, and safety status remain null.
+5. Disconnect while capturing and stop: the row stays in IndexedDB. Reconnect and press Sync now, or wait for automatic retry. Repeated requests use the same ID and do not create duplicate server rows.
+
+The simulator uses generated samples at real elapsed time. Its visual idle warning threshold is explicitly shortened to 10 seconds; the real phone threshold is 20 minutes of continuous estimated idle. No live machine accuracy is claimed by this demonstration.
+
+### Real phone capture
+Use HTTPS on a sensor-capable phone. A Windows laptop generally cannot provide the required accelerometer readings. Tap Start capture to request motion access. Keep the phone in a consistent orientation and the page visible. Missing permissions/readings produce a useful message; hiding the page or losing sensor readings stops capture. Stationary motion does not prove that an engine is on or off, so idle time requires explicit engine-running confirmation.
+
+The app uses acceleration **including gravity**, interpolates 2-second windows to 50 Hz, and advances windows by 1 second. The displayed Hz is the actual incoming sample rate, not a promise of 50 Hz hardware sampling. Features are mean, population standard deviation, and mean-square energy for each acceleration axis. Gyroscope magnitude aids the rule-based swing estimate when available; absent rotation readings cannot establish a swing using that rule.
+
+Rules are rough demonstration thresholds: total acceleration standard deviation below 0.18 m/s^2 indicates stationary/idle, above 1.5 suggests digging, intermediate motion suggests travel, and gyro magnitude above 18 degrees/s suggests swing. Two successive predictions are required for a stable transition. Only a stable dig -> swing -> dig sequence adds a cycle; intervening idle/travel resets the sequence. These thresholds need calibration on actual machines.
+
+### Record and train
+- While phone capture is running, choose a ground-truth label and record a 15-second take. Repeat at least 3 separate takes for each of idle, dig, swing, and travel. Aim for 10-15 minutes of diverse takes. These are manually labelled demonstrations, not machine-ground-truth data.
+- Export raw recordings as CSV to keep a backup. Each row retains `recording_id`, `source`, label, timestamp, acceleration, and rotation axes. Local takes remain after a refresh.
+- Stop capture and select **Train phone classifier**. This sends only the collected phone takes to the backend, trains a 40-tree Random Forest, saves it, and displays per-class precision, recall, F1, confusion matrix, and sample counts. Simulation takes are excluded.
+- Whole recordings are split by label into training/test groups **before** overlapping windows are created. The held-out share is approximately 20%, with at least one test recording per class. With only 3 takes/class it is 33%.
+- Choose Random Forest and start another capture. The forest is a portable JSON model evaluated locally, including offline after it is cached. Missing/mismatched/low-vote-share models fall back to rules. Vote share is not a calibrated probability or an accuracy claim.
+
+No genuine phone recordings have been collected by the coding agent. The committed demo model is trained only on generated signals and can only be selected for the simulator. A phone model is absent until real phone recordings are supplied. Grouped validation on phone takes still does not establish field accuracy on an excavator.
+
+### Model commands and persistence
+From `backend`, regenerate the synthetic demonstration model:
+```powershell
+.venv/Scripts/python.exe ml/motion_model.py --demo --output ml/artifacts/demo-model.json
+```
+Train from exported phone CSV:
+```powershell
+.venv/Scripts/python.exe ml/motion_model.py --input path/to/phone-recordings.csv --output ml/artifacts/phone-model.json
+```
+The default phone model is Git-ignored. Set `MOTION_MODEL_DIR` to a persistent directory on deployment (separate from the database file). The bundled synthetic model remains available from the source tree. JSON avoids loading uploaded pickle files.
+
+Motion drafts are checkpointed after each complete window, then finalized every 60 observed seconds or on stop. Drafts are recovered on reload in the same tab; finalized queue entries are shared between tabs. The last not-yet-processed sensor window can be lost on abrupt closure. Partial labelled takes are saved on normal stop/navigation if they have at least 2 seconds; abrupt closure can lose an unfinished take. Full offline app-shell loading is still not implemented.
+
+### Motion API
+| Endpoint | Behaviour |
+| --- | --- |
+| `POST /api/motion/ingest` | Validates and idempotently saves an observation batch and CAT-shaped machine log. |
+| `GET /api/motion/recent?operator_id=OP1001` | Latest 10 saved batches, with source/classifier metadata. |
+| `GET /api/motion/model?source=phone` | Trained phone forest; 404 until trained. Use `source=simulation` for the labelled demo forest. |
+| `POST /api/motion/train` | Trains from 12-100 phone recordings (at least 3/class; at most 100,000 samples). |
+
+Run the backend integration/training tests and `npm.cmd test` in frontend. Tests use temporary databases; they never reset demo tasks or train the actual phone-model artifact.
