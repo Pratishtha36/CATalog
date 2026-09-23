@@ -1,6 +1,6 @@
 ﻿"""Database entities. Unknown telemetry stays nullable; fixture data is labelled."""
 from datetime import date, datetime, timezone
-from sqlalchemy import Column, JSON, Index, text
+from sqlalchemy import Column, DateTime, JSON, Index, text
 from sqlmodel import Field, SQLModel
 
 
@@ -30,14 +30,14 @@ class Shift(SQLModel, table=True):
     id: str = Field(primary_key=True)
     operator_id: str = Field(foreign_key='operators.operator_id', index=True)
     shift_date: date
-    started_at: datetime = Field(default_factory=utcnow)
+    started_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
 
 
 class Task(SQLModel, table=True):
     __tablename__ = 'tasks'
     __table_args__ = (
-        Index('one_active_task_per_operator', 'operator_id', unique=True, sqlite_where=text("status = 'in_progress'")),
-        Index('one_active_task_per_machine', 'machine_id', unique=True, sqlite_where=text("status = 'in_progress'")),
+        Index('one_active_task_per_operator', 'operator_id', unique=True, sqlite_where=text("status = 'in_progress'"), postgresql_where=text("status = 'in_progress'")),
+        Index('one_active_task_per_machine', 'machine_id', unique=True, sqlite_where=text("status = 'in_progress'"), postgresql_where=text("status = 'in_progress'")),
     )
     task_id: str = Field(primary_key=True)
     task_type: str
@@ -53,16 +53,16 @@ class Task(SQLModel, table=True):
     lng: float
     scheduled_date: date = Field(index=True)
     location_name: str
-    started_at: datetime | None = None
-    finished_at: datetime | None = None
-    pre_dig_acknowledged_at: datetime | None = None
+    started_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    finished_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    pre_dig_acknowledged_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
     data_source: str = 'demo_fixture'
 
 
 class MachineLog(SQLModel, table=True):
     __tablename__ = 'machine_logs'
     id: str = Field(primary_key=True)
-    timestamp: datetime = Field(default_factory=utcnow)
+    timestamp: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
     machine_id: str = Field(foreign_key='machines.machine_id')
     operator_id: str = Field(foreign_key='operators.operator_id', index=True)
     engine_hours: float | None = None
@@ -85,7 +85,7 @@ class Incident(SQLModel, table=True):
     photo: str | None = None
     lat: float | None = None
     lng: float | None = None
-    created_at: datetime = Field(default_factory=utcnow)
+    created_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
 
 
 class Lesson(SQLModel, table=True):
@@ -96,7 +96,7 @@ class Lesson(SQLModel, table=True):
     trigger: str
     script_hi: str
     quiz: list[dict] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
-    created_at: datetime = Field(default_factory=utcnow)
+    created_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
 
 
 class Completion(SQLModel, table=True):
@@ -105,7 +105,7 @@ class Completion(SQLModel, table=True):
     operator_id: str = Field(foreign_key='operators.operator_id')
     lesson_id: str = Field(foreign_key='lessons.id')
     score: int
-    completed_at: datetime = Field(default_factory=utcnow)
+    completed_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
 
 class MotionBatch(SQLModel, table=True):
     __tablename__ = 'motion_batches'
@@ -116,3 +116,10 @@ class MotionBatch(SQLModel, table=True):
     operator_id: str = Field(foreign_key='operators.operator_id', index=True)
     source: str
     payload: dict = Field(sa_column=Column(JSON, nullable=False))
+
+
+class MotionModel(SQLModel, table=True):
+    __tablename__ = 'motion_models'
+    id: str = Field(primary_key=True)
+    artifact: dict = Field(sa_column=Column(JSON, nullable=False))
+    updated_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))

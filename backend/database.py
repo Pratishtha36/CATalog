@@ -1,8 +1,16 @@
 ﻿import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from sqlalchemy import event
-from sqlmodel import create_engine
+from dotenv import load_dotenv
+from sqlalchemy import event, text
+from sqlalchemy.engine import make_url
+from sqlalchemy.pool import NullPool
+from sqlmodel import SQLModel, create_engine
+
+# Process environment (Render) wins over a local ignored file. Do not interpolate
+# password characters such as ${...} from provider-generated connection strings.
+load_dotenv(Path(__file__).parent / '.env', override=False, interpolate=False)
+WRITE_LOCK_ID = 1894457819
 
 
 def site_today():
@@ -10,10 +18,26 @@ def site_today():
 
 
 def make_engine(url=None):
+    if url is None and os.getenv('RENDER') and not os.getenv('DATABASE_URL'):
+        raise ValueError('Set DATABASE_URL to your Supabase transaction-pooler URI on Render.')
     url = url or os.getenv('DATABASE_URL') or f"sqlite:///{Path(__file__).parent / 'cabwise.db'}"
-    if not url.startswith('sqlite:///'):
-        raise ValueError('This MVP supports file-backed SQLite URLs only.')
-    engine = create_engine(url, connect_args={'check_same_thread': False, 'timeout': 15})
+    if isinstance(url, str) and url.startswith('postgres://'):
+        url = 'postgresql://' + url[len('postgres://'):]
+    try:
+        parsed = make_url(url)
+    except Exception:
+        raise ValueError('Invalid DATABASE_URL. Check the connection string in your environment.') from None
+    if parsed.get_backend_name() == 'postgresql':
+        parsed = parsed.set(drivername='postgresql+psycopg')
+        if 'sslmode' not in parsed.query:
+            parsed = parsed.update_query_dict({'sslmode': 'require'})
+        if parsed.query.get('sslmode') not in ('require', 'verify-ca', 'verify-full'):
+            raise ValueError('PostgreSQL DATABASE_URL must require TLS (sslmode=require or verify-full).')
+        return create_engine(parsed, poolclass=NullPool, hide_parameters=True,
+                             connect_args={'prepare_threshold': None, 'connect_timeout': 15})
+    if parsed.get_backend_name() != 'sqlite':
+        raise ValueError('DATABASE_URL must use PostgreSQL or SQLite.')
+    engine = create_engine(parsed, connect_args={'check_same_thread': False, 'timeout': 15}, hide_parameters=True)
 
     @event.listens_for(engine, 'connect')
     def configure_sqlite(connection, _):
@@ -21,3 +45,22 @@ def make_engine(url=None):
         connection.execute('PRAGMA busy_timeout=15000')
 
     return engine
+
+
+def begin_write(session):
+    """Serialize MVP writes across processes, retaining exact-retry semantics.
+
+    Transaction-scoped advisory locks work with transaction poolers; session-level
+    locks do not. This deliberately retains the old single-writer MVP behaviour.
+    """
+    if session.get_bind().dialect.name == 'postgresql':
+        session.execute(text('SELECT pg_advisory_xact_lock(:key)'), {'key': WRITE_LOCK_ID})
+    else:
+        session.execute(text('BEGIN IMMEDIATE'))
+
+
+def initialize_schema(engine):
+    with engine.begin() as connection:
+        if engine.dialect.name == 'postgresql':
+            connection.execute(text('SELECT pg_advisory_xact_lock(:key)'), {'key': WRITE_LOCK_ID})
+        SQLModel.metadata.create_all(connection)

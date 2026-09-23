@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from main import create_app
-from models import MachineLog, MotionBatch, utcnow
+from models import MachineLog, MotionBatch, MotionModel, utcnow
 
 
 class MotionApiTests(unittest.TestCase):
@@ -86,8 +86,8 @@ class MotionApiTests(unittest.TestCase):
         artifact = response.json()
         self.assertEqual(artifact['training_source'], 'phone')
         self.assertEqual(self.client.get('/api/motion/model?source=phone').json(), artifact)
-        saved = Path(self.temp.name) / 'models' / 'phone-model.json'
-        self.assertTrue(saved.exists())
+        with Session(self.app.state.engine) as session:
+            self.assertEqual(session.get(MotionModel, 'phone').artifact, artifact)
 
 
 if __name__ == '__main__':

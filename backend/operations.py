@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import text
+from database import begin_write
 from sqlmodel import Session, select
 
 from models import Incident, Machine, MachineLog, Operator, Task
@@ -136,7 +136,7 @@ def build_operations_router(engine):
     @router.post('/incidents')
     def create_incident(body: IncidentInput):
         with Session(engine) as session:
-            session.execute(text('BEGIN IMMEDIATE'))
+            begin_write(session)
             if not session.get(Operator, body.operator_id) or not session.get(Machine, body.machine_id):
                 raise HTTPException(404, 'Operator or machine not found')
             identifier = str(body.client_id)

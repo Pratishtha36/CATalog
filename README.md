@@ -10,7 +10,7 @@ Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and de
 - One active task per operator and machine; duplicate requests preserve the original timestamp.
 - Demo pre-dig acknowledgement before trenching starts (no mapped utility checks yet).
 - Sample-data seatbelt replay with a visual warning and Hindi audio when a device voice is available.
-- SQLite/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, and completions. Incident and training workflows remain unimplemented.
+- PostgreSQL/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, completions, and trained phone models, with SQLite fallback locally. Operator training workflows remain unimplemented.
 - FastAPI health endpoint, frontend connection indicator, and retry.
 - Tap-to-run motion, GPS, and Hindi speech checks; no sensor data uploads.
 - Deployment configuration for Vercel and Render.
@@ -56,10 +56,10 @@ With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` s
 2. Create the Render service using `render.yaml`, or set root directory `backend`, build `pip install -r requirements.txt`, and start `uvicorn main:app --host 0.0.0.0 --port $PORT`.
 3. Create a Vercel project with root directory `frontend`, build command `npm run build`, and output directory `dist`.
 4. Set Vercel `VITE_API_URL` to the HTTPS Render origin, without a trailing `/api`, and redeploy. Frontend environment values are bundled at build time; never place secrets there.
-5. Set Render `CORS_ORIGINS` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables, not `.env` files automatically.
+5. Set Render `CORS_ORIGINS` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables and ignored `backend/.env`.
 6. Open the public frontend, verify the backend indicator, and refresh a nested route such as `/device-check`.
 
-Deployments have not been created by the scaffold itself. **SQLite now requires persistent storage on Render.** Mount a persistent disk and set `DATABASE_URL` to its absolute database path (for example `sqlite:////var/data/cabwise.db`). The default local file will be lost on an ephemeral deployment. The current Blueprint does not provision a paid disk automatically. Use one backend instance for this SQLite MVP.
+Deployments have not been created automatically. Set Render `DATABASE_URL` to your Supabase transaction-pooler URI before deploying. PostgreSQL persists application records, incident photos, and trained phone models. See [deployment instructions](docs/DEPLOYMENT.md). Existing local SQLite data is retained but is not automatically copied to Supabase.
 
 ## Real-phone acceptance checklist
 Open `/device-check` on the intended Android phone over HTTPS. An HTTP LAN address such as `http://192.168...:5173` will not provide a secure sensor context.
@@ -90,7 +90,7 @@ These are authored **demo fixtures**, not the original CAT CSV dataset. The impl
 
 Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline task queues and utility proximity are not implemented. Incident reporting has a separate durable queue. SwingSense has its own durable motion queue and classifier workflow described below.
 
-`DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment, not `.env` files automatically. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
+`DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment and ignored `backend/.env`. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
 
 This is a demo API with no authentication or access controls; use demo data only.
 

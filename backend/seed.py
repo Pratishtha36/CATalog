@@ -1,15 +1,14 @@
 """Idempotent, non-destructive demo fixtures; not an official CAT dataset."""
 from datetime import datetime, timezone
-from sqlalchemy import text
 from sqlmodel import Session, SQLModel
-from database import make_engine, site_today
+from database import make_engine, site_today, begin_write, initialize_schema
 from models import Machine, MachineLog, Operator, Task
 
 
 def seed_demo(engine, day=None):
     day = day or site_today()
     with Session(engine) as session:
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         if not session.get(Operator, 'OP1001'):
             session.add(Operator(operator_id='OP1001', name='Demo operator'))
         if not session.get(Machine, 'MC1001'):
@@ -37,6 +36,6 @@ def seed_demo(engine, day=None):
 
 if __name__ == '__main__':
     engine = make_engine()
-    SQLModel.metadata.create_all(engine)
+    initialize_schema(engine)
     seed_demo(engine)
     print('Demo operator, machine, history, and today\'s tasks are ready. Existing work was preserved.')

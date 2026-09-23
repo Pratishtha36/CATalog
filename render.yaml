@@ -2,7 +2,7 @@ services:
   - type: web
     name: catalog-api
     runtime: python
-    # Temporary demo only: this plan has no persistent disk.
+    # Application data and trained phone models persist in Supabase.
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
@@ -12,4 +12,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.13.7
       - key: CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
         sync: false

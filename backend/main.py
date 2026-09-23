@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_, text
 from sqlmodel import Session, SQLModel, select
 
-from database import make_engine, site_today
+from database import make_engine, site_today, begin_write, initialize_schema
 from models import Machine, MachineLog, Operator, Shift, Task, utcnow
 from seed import seed_demo
 from motion import build_motion_router
@@ -55,12 +55,12 @@ def create_app(database_url=None, model_dir=None):
 
     @asynccontextmanager
     async def lifespan(app):
-        SQLModel.metadata.create_all(engine)
+        initialize_schema(engine)
         seed_demo(engine)
         yield
         engine.dispose()
 
-    app = FastAPI(title='CabWise API', version='0.4.0', lifespan=lifespan)
+    app = FastAPI(title='CabWise API', version='0.5.0', lifespan=lifespan)
     app.state.engine = engine
     origins = [origin.strip().rstrip('/') for origin in os.getenv(
         'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if origin.strip()]
@@ -91,7 +91,7 @@ def create_app(database_url=None, model_dir=None):
     @app.get('/api/health')
     def health(session: Session = Depends(session_dependency)):
         session.execute(text('SELECT 1'))
-        return {'status': 'ok', 'service': 'cabwise-api', 'version': '0.4.0'}
+        return {'status': 'ok', 'service': 'cabwise-api', 'version': '0.5.0', 'database': engine.dialect.name}
 
     @app.get('/api/operators')
     def operators(session: Session = Depends(session_dependency)):
@@ -126,7 +126,7 @@ def create_app(database_url=None, model_dir=None):
 
     @app.post('/api/tasks')
     def create_task(body: CreateTask, session: Session = Depends(session_dependency)):
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         operator = require_operator(session, body.operator_id)
         machine = session.get(Machine, 'MC1001')
         task_id = f'custom-{body.request_id}'
@@ -153,7 +153,7 @@ def create_app(database_url=None, model_dir=None):
 
     @app.post('/api/shifts/start')
     def start_shift(body: OperatorAction, session: Session = Depends(session_dependency)):
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         require_operator(session, body.operator_id)
         shift = current_shift(session, body.operator_id)
         if not shift:
@@ -166,7 +166,7 @@ def create_app(database_url=None, model_dir=None):
 
     @app.post('/api/tasks/{task_id}/start')
     def start_task(task_id: str, body: StartTask, session: Session = Depends(session_dependency)):
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         require_operator(session, body.operator_id)
         task = session.get(Task, task_id)
         if not task or task.operator_id != body.operator_id:
@@ -195,7 +195,7 @@ def create_app(database_url=None, model_dir=None):
 
     @app.post('/api/tasks/{task_id}/finish')
     def finish_task(task_id: str, body: OperatorAction, session: Session = Depends(session_dependency)):
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         require_operator(session, body.operator_id)
         task = session.get(Task, task_id)
         if not task or task.operator_id != body.operator_id:
@@ -219,7 +219,7 @@ def create_app(database_url=None, model_dir=None):
 
     @app.post('/api/safety/replay')
     def replay(body: ReplayAction, session: Session = Depends(session_dependency)):
-        session.execute(text('BEGIN IMMEDIATE'))
+        begin_write(session)
         require_operator(session, body.operator_id)
         if not current_shift(session, body.operator_id):
             raise HTTPException(409, 'Start your shift before replaying sample data')

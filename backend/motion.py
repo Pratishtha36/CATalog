@@ -9,11 +9,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import text
+from database import begin_write
 from sqlmodel import Session, select
 
-from models import Machine, MachineLog, MotionBatch, Operator
-from ml.motion_model import train_recordings, save_model
+from models import Machine, MachineLog, MotionBatch, MotionModel, Operator, utcnow
+from ml.motion_model import train_recordings
 
 
 class ObservationBatch(BaseModel):
@@ -77,7 +77,7 @@ def build_motion_router(engine, model_dir=None):
     def ingest(body: ObservationBatch):
         payload = body.model_dump(mode='json')
         with Session(engine) as session:
-            session.execute(text('BEGIN IMMEDIATE'))
+            begin_write(session)
             if not session.get(Operator, body.operator_id) or not session.get(Machine, body.machine_id):
                 raise HTTPException(404, 'Operator or machine not found')
             existing = session.get(MotionBatch, str(body.id))
@@ -107,6 +107,16 @@ def build_motion_router(engine, model_dir=None):
 
     @router.get('/model')
     def model(source: Literal['phone', 'simulation'] = 'phone'):
+        if source == 'phone':
+            with Session(engine) as session:
+                stored = session.get(MotionModel, 'phone')
+                if stored:
+                    if stored.artifact.get('training_source') != source:
+                        raise HTTPException(409, 'Model source mismatch')
+                    return stored.artifact
+            # Existing local CLI artifacts remain readable on SQLite only.
+            if engine.dialect.name == 'postgresql':
+                raise HTTPException(404, 'No phone model trained yet. Use rules while collecting labelled recordings.')
         path = artifact_dir / 'phone-model.json' if source == 'phone' else bundled_demo
         if not path.exists():
             raise HTTPException(404, 'No phone model trained yet. Use rules while collecting labelled recordings.')
@@ -121,7 +131,16 @@ def build_motion_router(engine, model_dir=None):
             raise HTTPException(409, 'Training already in progress')
         try:
             artifact = train_recordings([r.model_dump() for r in body.recordings], 'phone')
-            save_model(artifact, artifact_dir / 'phone-model.json')
+            with Session(engine) as session:
+                begin_write(session)
+                stored = session.get(MotionModel, 'phone')
+                if stored:
+                    stored.artifact = artifact
+                    stored.updated_at = utcnow()
+                else:
+                    stored = MotionModel(id='phone', artifact=artifact)
+                session.add(stored)
+                session.commit()
             return artifact
         except ValueError as error:
             raise HTTPException(422, str(error)) from error

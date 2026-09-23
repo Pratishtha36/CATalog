@@ -20,20 +20,17 @@ In Render, select New > Web Service, connect GitHub, and select the repository.
 
 For a temporary demo, select Free. The root `render.yaml` also provides these basic settings for Blueprint users. This YAML intentionally does not provision a paid resource.
 
-Once deployment finishes, copy the actual service URL. Open `https://YOUR-SERVICE.onrender.com/api/health` and confirm `status: ok` and version `0.4.0`. A free service can sleep when inactive; let this URL finish waking the service before testing the frontend. Use one backend instance with this SQLite implementation.
+### Supabase PostgreSQL
 
-### Persistent option
+Before deploying, set Render > Environment > `DATABASE_URL` to the full URI from Supabase **Connect > Transaction pooler** (usually port 6543). Replace the password placeholder with your URL-encoded database password. Keep the credential on the backend only; never use a `VITE_` variable for it.
 
-Free Render web services do not support persistent disks. Local SQLite data, incident photos, and trained phone models can be lost on a redeploy/restart/spin-down. Local browser queues are separate; already-synced records are not automatically re-uploaded after a server reset.
+The backend uses psycopg, requires TLS, disables prepared statements, and uses transaction-scoped write locks compatible with the pooler. It creates missing tables and seeds demo records on startup. Existing laptop SQLite records are not automatically imported; the original SQLite file is retained. Trained phone models and incident photos are stored in PostgreSQL, so a Render persistent disk is not required for these records.
 
-If persistent data is required, choose a paid web service, attach a persistent disk mounted at `/var/data`, and set:
+For local use, create ignored `backend/.env` with `DATABASE_URL` and `CORS_ORIGINS` (see `.env.example`). Render environment variables take precedence. SQLite remains a local/test fallback when no URL is configured; Render startup refuses that fallback to prevent accidental ephemeral storage.
 
-```text
-DATABASE_URL=sqlite:////var/data/cabwise.db
-MOTION_MODEL_DIR=/var/data/motion-models
-```
+In Supabase, disable the Data API if it is not used by another application, or enable RLS without anonymous policies on the application tables. This app connects through the backend database owner; it does not use the Supabase browser client. The demo backend itself still has no authentication.
 
-Only set these paths after attaching the disk. These environment variables do not create a Render disk. Laptop data is not automatically copied to the cloud; a new hosted database begins with demo fixtures. Review current Render charges before creating paid resources.
+Once deployment finishes, open `https://YOUR-SERVICE.onrender.com/api/health` and confirm `status: ok`, version `0.5.0`, and `database: postgresql`. This confirms the selected database engine after successful startup. A free service can sleep when inactive; let it wake before testing the frontend.
 
 ## 2. Vercel frontend
 
@@ -81,6 +78,6 @@ Changing `VITE_API_URL` on Vercel requires a new frontend deployment because Vit
 - CORS error: verify Render allows the exact browser origin, including `https://`, and restart the backend after changing it.
 - Requests go to Vercel `/api`: VITE_API_URL was missing when the frontend was built. Set it and redeploy.
 - Old code or missing features: verify both services deployed the latest main commit.
-- Reports missing after server reset: free filesystem storage is ephemeral. Persistent use requires a disk or a future database/storage migration.
+- Database connection fails: check DATABASE_URL, the actual password, the transaction-pooler host and port, and whether the Supabase project is active. Never paste credentials into logs or screenshots.
 
 Official references: [Render FastAPI](https://render.com/docs/deploy-fastapi), [Render free limitations](https://render.com/docs/free), [Render disks](https://render.com/docs/disks), [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite).
