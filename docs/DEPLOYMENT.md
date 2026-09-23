@@ -16,9 +16,11 @@ In Render, select New > Web Service, connect GitHub, and select the repository.
 | Start command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Health check | `/api/health` |
 | Environment | `PYTHON_VERSION=3.13.7` |
-| Initial CORS environment | `CORS_ORIGINS=http://localhost:5173` (replace after the Vercel URL is assigned) |
+| Initial CORS environment | `FRONTEND_URL=http://localhost:5173` (replace after the Vercel URL is assigned) |
 
 For a temporary demo, select Free. The root `render.yaml` also provides these basic settings for Blueprint users. This YAML intentionally does not provision a paid resource.
+
+The backend accepts `FRONTEND_URL` and `DATABASE_URL`, including lowercase aliases `frontend_url` and `database_url`. Use uppercase names consistently as shown here. `FRONTEND_URL` is the frontend origin (no path); comma-separated origins are supported. Legacy `CORS_ORIGINS` remains a fallback when no frontend URL is set.
 
 ### Supabase PostgreSQL
 
@@ -26,7 +28,7 @@ Before deploying, set Render > Environment > `DATABASE_URL` to the full URI from
 
 The backend uses psycopg, requires TLS, disables prepared statements, and uses transaction-scoped write locks compatible with the pooler. It creates missing tables and seeds demo records on startup. Existing laptop SQLite records are not automatically imported; the original SQLite file is retained. Trained phone models and incident photos are stored in PostgreSQL, so a Render persistent disk is not required for these records.
 
-For local use, create ignored `backend/.env` with `DATABASE_URL` and `CORS_ORIGINS` (see `.env.example`). Render environment variables take precedence. SQLite remains a local/test fallback when no URL is configured; Render startup refuses that fallback to prevent accidental ephemeral storage.
+For local use, create ignored `backend/.env` with `DATABASE_URL` and `FRONTEND_URL` (see `.env.example`). Render environment variables take precedence. SQLite remains a local/test fallback when no URL is configured; Render startup refuses that fallback to prevent accidental ephemeral storage.
 
 In Supabase, disable the Data API if it is not used by another application, or enable RLS without anonymous policies on the application tables. This app connects through the backend database owner; it does not use the Supabase browser client. The demo backend itself still has no authentication.
 
@@ -51,10 +53,10 @@ Click Deploy and copy the stable production domain, for example `https://YOUR-PR
 
 ## 3. Connect the two services
 
-In Render > Environment, replace `CORS_ORIGINS` with the exact Vercel production origin:
+In Render > Environment, replace `FRONTEND_URL` with the exact Vercel production origin:
 
 ```text
-CORS_ORIGINS=https://YOUR-PROJECT.vercel.app
+FRONTEND_URL=https://YOUR-PROJECT.vercel.app
 ```
 
 Save and redeploy/restart Render. For multiple intentionally allowed origins, use comma-separated values, without paths. A changing Vercel preview URL is a different origin and must be explicitly allowed if used. Prefer the stable production domain for phone testing and consistent browser storage.

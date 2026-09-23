@@ -56,7 +56,7 @@ With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` s
 2. Create the Render service using `render.yaml`, or set root directory `backend`, build `pip install -r requirements.txt`, and start `uvicorn main:app --host 0.0.0.0 --port $PORT`.
 3. Create a Vercel project with root directory `frontend`, build command `npm run build`, and output directory `dist`.
 4. Set Vercel `VITE_API_URL` to the HTTPS Render origin, without a trailing `/api`, and redeploy. Frontend environment values are bundled at build time; never place secrets there.
-5. Set Render `CORS_ORIGINS` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables and ignored `backend/.env`.
+5. Set Render `FRONTEND_URL` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables and ignored `backend/.env`.
 6. Open the public frontend, verify the backend indicator, and refresh a nested route such as `/device-check`.
 
 Deployments have not been created automatically. Set Render `DATABASE_URL` to your Supabase transaction-pooler URI before deploying. PostgreSQL persists application records, incident photos, and trained phone models. See [deployment instructions](docs/DEPLOYMENT.md). Existing local SQLite data is retained but is not automatically copied to Supabase.

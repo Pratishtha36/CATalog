@@ -62,8 +62,10 @@ def create_app(database_url=None, model_dir=None):
 
     app = FastAPI(title='CabWise API', version='0.5.0', lifespan=lifespan)
     app.state.engine = engine
-    origins = [origin.strip().rstrip('/') for origin in os.getenv(
-        'CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if origin.strip()]
+    frontend_url = (os.getenv('FRONTEND_URL') or os.getenv('frontend_url')
+                    or os.getenv('CORS_ORIGINS')
+                    or 'http://localhost:5173,http://127.0.0.1:5173')
+    origins = [origin.strip().rstrip('/') for origin in frontend_url.split(',') if origin.strip()]
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['GET', 'POST'],
                        allow_headers=['Content-Type'])
 

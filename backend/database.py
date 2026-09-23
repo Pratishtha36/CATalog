@@ -18,9 +18,10 @@ def site_today():
 
 
 def make_engine(url=None):
-    if url is None and os.getenv('RENDER') and not os.getenv('DATABASE_URL'):
+    configured_url = os.getenv('DATABASE_URL') or os.getenv('database_url')
+    if url is None and os.getenv('RENDER') and not configured_url:
         raise ValueError('Set DATABASE_URL to your Supabase transaction-pooler URI on Render.')
-    url = url or os.getenv('DATABASE_URL') or f"sqlite:///{Path(__file__).parent / 'cabwise.db'}"
+    url = url or configured_url or f"sqlite:///{Path(__file__).parent / 'cabwise.db'}"
     if isinstance(url, str) and url.startswith('postgres://'):
         url = 'postgresql://' + url[len('postgres://'):]
     try:
