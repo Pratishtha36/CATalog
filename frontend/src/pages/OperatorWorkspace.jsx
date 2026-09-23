@@ -175,6 +175,26 @@ export function SafetyCard({ controls = false }) {
   </section>;
 }
 
+function AddActivity() {
+  const { mutate, busy, operatorId } = useContext(Workspace);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [form, setForm] = useState({ task_type: 'loading', location_name: 'Demo site', estimated_time_min: 10, weather: 'clear' });
+  const attempt = useRef(null);
+  useEffect(() => { setOpen(false); setMessage(''); attempt.current = null; }, [operatorId]);
+  function update(key, value) { setForm(current => ({ ...current, [key]: value })); attempt.current = null; }
+  async function submit(event) {
+    event.preventDefault();
+    attempt.current ||= crypto.randomUUID();
+    const saved = await mutate('/api/tasks', { ...form, estimated_time_min: Number(form.estimated_time_min), request_id: attempt.current });
+    if (saved) { attempt.current = null; setOpen(false); setMessage('Activity added to today’s work. Start it when you are ready.'); }
+  }
+  return <section className="add-activity"><div className="section-heading"><div><h2>Add an activity</h2><p className="small-note">Create another activity for today on demo machine MC1001.</p></div><button className="button secondary" disabled={busy} onClick={() => { setOpen(!open); setMessage(''); }}>{open ? 'Cancel' : '+ Add activity'}</button></div>
+    {message && <p role="status">{message}</p>}
+    {open && <form onSubmit={submit}><fieldset disabled={busy} className="activity-fields"><label>Activity type<select value={form.task_type} onChange={e => update('task_type', e.target.value)}>{['loading', 'grading', 'trenching', 'excavation', 'demolition'].map(type => <option key={type}>{type}</option>)}</select></label><label>Location name<input required maxLength={120} value={form.location_name} onChange={e => update('location_name', e.target.value)}/></label><label>Estimated minutes<input required type="number" min="1" max="1440" value={form.estimated_time_min} onChange={e => update('estimated_time_min', e.target.value)}/></label><label>Weather<select value={form.weather} onChange={e => update('weather', e.target.value)}>{['clear', 'rainy', 'windy'].map(weather => <option key={weather}>{weather}</option>)}</select></label><button className="button primary" type="submit">{busy ? 'Saving…' : 'Save activity'}</button></fieldset><p className="small-note">Uses the demo site coordinates. Trenching and excavation still require the pre-dig check.</p></form>}
+  </section>;
+}
+
 export function MyDay() {
   const { data, error, busy, mutate, refresh } = useContext(Workspace);
   const [now, setNow] = useState(Date.now());
@@ -183,6 +203,7 @@ export function MyDay() {
   const active = data?.tasks.find(task => task.status === 'in_progress');
   return <><div className="page-heading"><div><p className="eyebrow">YOUR OPERATOR COMPANION</p><h1>Your day. One task at a time.</h1><p className="muted">Namaste. Start your shift, review the work, and record your progress.</p></div><span className="badge">Demo worksite · {data?.date || 'Loading'}</span></div>
     <ErrorBanner/><ShiftPanel/>
+    {data && <><AddActivity/><p className="small-note">SwingSense only needs a started shift, even when all tasks are completed. <Link className="text-link" to="/live">Open SwingSense</Link></p></>}
     {!data && !error && <p role="status" className="muted">Loading your saved shift and tasks…</p>}
     {data && <><div className="day-summary"><div><Sun size={21}/><strong>{data.tasks.length}</strong><span>Assigned tasks</span></div><div><Activity size={21}/><strong>{active ? '1' : '0'}</strong><span>In progress</span></div><div><CheckCircle2 size={21}/><strong>{completed}/{data.tasks.length}</strong><span>Completed</span></div></div>
     <div className="section-heading"><h2>Today’s work</h2><button className="text-link" disabled={busy} onClick={() => refresh()}>Refresh</button></div>

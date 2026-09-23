@@ -3,11 +3,11 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Literal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_, text
 from sqlmodel import Session, SQLModel, select
 
@@ -27,6 +27,15 @@ class StartTask(OperatorAction):
 
 class ReplayAction(OperatorAction):
     seatbelt_status: Literal['fastened', 'unfastened']
+
+
+class CreateTask(OperatorAction):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True, allow_inf_nan=False)
+    request_id: UUID
+    task_type: Literal['loading', 'grading', 'trenching', 'excavation', 'demolition']
+    location_name: str = Field(min_length=1, max_length=120)
+    estimated_time_min: float = Field(gt=0, le=1440)
+    weather: Literal['clear', 'rainy', 'windy'] = 'clear'
 
 
 def as_utc(value):
@@ -113,6 +122,28 @@ def create_app(database_url=None, model_dir=None):
         tasks = session.exec(select(Task).where(Task.operator_id == operator_id,
             or_(Task.scheduled_date == site_today(), Task.status == 'in_progress')).order_by(Task.task_id)).all()
         return {'date': site_today(), 'timezone': 'Asia/Kolkata', 'tasks': [serialize(task) for task in tasks]}
+
+    @app.post('/api/tasks')
+    def create_task(body: CreateTask, session: Session = Depends(session_dependency)):
+        session.execute(text('BEGIN IMMEDIATE'))
+        operator = require_operator(session, body.operator_id)
+        machine = session.get(Machine, 'MC1001')
+        task_id = f'custom-{body.request_id}'
+        existing = session.get(Task, task_id)
+        values = {key: getattr(body, key) for key in
+                  ['operator_id', 'task_type', 'location_name', 'estimated_time_min', 'weather']}
+        if existing:
+            if any(getattr(existing, key) != value for key, value in values.items()):
+                raise HTTPException(409, 'This activity request already has different details')
+            return serialize(existing)
+        task = Task(task_id=task_id, **values, machine_id=machine.machine_id,
+                    operator_skill=operator.operator_skill, machine_age_yrs=machine.machine_age_yrs,
+                    scheduled_date=site_today(), lat=28.6692, lng=77.4538,
+                    data_source='manual_demo')
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+        return serialize(task)
 
     @app.get('/api/shifts/current')
     def get_shift(operator_id: str, session: Session = Depends(session_dependency)):

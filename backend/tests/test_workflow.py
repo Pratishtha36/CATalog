@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy import inspect
@@ -32,6 +33,28 @@ class WorkflowTests(unittest.TestCase):
 
     def start_shift(self):
         return self.client.post('/api/shifts/start', json=self.body)
+
+    def test_add_activity_after_completion_and_retry_without_duplicates(self):
+        self.start_shift()
+        for task in self.tasks:
+            self.client.post(f"/api/tasks/{task['task_id']}/start", json=self.body | {'pre_dig_acknowledged': True})
+            self.client.post(f"/api/tasks/{task['task_id']}/finish", json=self.body)
+        payload = self.body | {'request_id': str(uuid4()), 'task_type': 'trenching',
+                              'location_name': 'New demo area', 'estimated_time_min': 10, 'weather': 'clear'}
+        response = self.client.post('/api/tasks', json=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        task = response.json()
+        self.assertEqual(task['status'], 'pending')
+        self.assertEqual(task['data_source'], 'manual_demo')
+        self.assertEqual(self.client.post('/api/tasks', json=payload).json()['task_id'], task['task_id'])
+        self.assertEqual(self.client.post('/api/tasks', json=payload | {'estimated_time_min': 11}).status_code, 409)
+        for changes in [{'location_name': '  '}, {'estimated_time_min': 0}, {'task_type': 'invalid'}]:
+            self.assertEqual(self.client.post('/api/tasks', json=payload | changes).status_code, 422)
+        rows = self.client.get('/api/tasks/today', params=self.body).json()['tasks']
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(sum(row['status'] == 'completed' for row in rows), 3)
+        self.assertEqual(self.client.post(f"/api/tasks/{task['task_id']}/start", json=self.body).status_code, 409)
+        self.assertEqual(self.client.post(f"/api/tasks/{task['task_id']}/start", json=self.body | {'pre_dig_acknowledged': True}).status_code, 200)
 
     def action(self, index, action, **extra):
         return self.client.post(f"/api/tasks/{self.tasks[index]['task_id']}/{action}", json=self.body | extra)
