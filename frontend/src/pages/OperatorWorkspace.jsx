@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Activity, ArrowRight, CheckCircle2, Clock3, MapPin, ShieldCheck, Sun, Volume2 } from 'lucide-react';
 import { post, request } from '../lib/api';
+import { SAFETY_LANGUAGES, LANGUAGE_STORAGE_KEY, getSafetyLanguage } from '../lib/safetyAudio';
+import audioManifest from '../lib/safetyAudioManifest.json';
+import { createSafetyAudioPlayer } from '../lib/safetyAudioPlayer';
 
 const Workspace = createContext(null);
 const names = { pending: 'Ready to start', in_progress: 'In progress', completed: 'Completed' };
@@ -15,12 +18,25 @@ export function WorkspaceProvider({ children }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
-  const [voiceMessage, setVoiceMessage] = useState('Hindi alerts are off until you enable audio.');
+  const [languageCode, setLanguageCode] = useState(() => {
+    try { return getSafetyLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY)).code; }
+    catch { return 'hi-IN'; }
+  });
+  const language = getSafetyLanguage(languageCode);
+  const [voiceMessage, setVoiceMessage] = useState('Safety audio is off until you enable it.');
   const busyRef = useRef(false);
   const generation = useRef(0);
   const mounted = useRef(false);
   const lastAlert = useRef(null);
-  const utteranceRef = useRef(null);
+  const playerRef = useRef(null);
+  if (!playerRef.current) {
+    playerRef.current = createSafetyAudioPlayer({ onError: message => {
+      if (mounted.current) {
+        setAudioEnabled(false);
+        setVoiceMessage(`${message} Visual alerts remain available.`);
+      }
+    } });
+  }
 
   async function refresh(id = operatorId) {
     const version = ++generation.current;
@@ -46,41 +62,48 @@ export function WorkspaceProvider({ children }) {
     return () => { mounted.current = false; generation.current++; clearInterval(interval); };
   }, [operatorId]);
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(() => () => playerRef.current.stop(), []);
 
-  function speak(text) {
-    const synthesis = window.speechSynthesis;
-    const voice = synthesis?.getVoices().find(item => item.lang.toLowerCase().startsWith('hi'));
-    if (!synthesis || !voice) {
-      setVoiceMessage('Hindi voice unavailable. Install a Hindi device voice and enable audio again. Visual alerts remain available.');
-      return false;
+  async function speak(prompt) {
+    const clip = audioManifest[language.code]?.[prompt];
+    if (!clip) {
+      setAudioEnabled(false);
+      setVoiceMessage('This audio clip is missing. Visual alerts remain available.');
+      return 'failed';
     }
-    synthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'hi-IN';
-    utterance.voice = voice;
-    utteranceRef.current = utterance;
-    utterance.onerror = event => {
-      if (mounted.current && event.error !== 'interrupted' && event.error !== 'canceled') {
-        setVoiceMessage(`Audio failed (${event.error}). Visual alerts remain available.`);
-      }
-    };
-    synthesis.speak(utterance);
-    setVoiceMessage('Hindi alerts enabled on this device.');
-    return true;
+    const result = await playerRef.current.play(clip.url);
+    if (result === 'started' && mounted.current) {
+      setVoiceMessage(`${language.name} safety audio enabled. Playing the bundled recording.`);
+    }
+    return result;
   }
 
-  function enableAudio() {
-    setAudioEnabled(speak('नमस्ते! कैबवाइज़ में आपका स्वागत है।'));
+  function selectLanguage(code) {
+    const next = getSafetyLanguage(code);
+    playerRef.current.stop();
+    setLanguageCode(next.code);
+    setAudioEnabled(false);
+    lastAlert.current = null;
+    setVoiceMessage(`${next.name} selected. Enable audio to hear a sample and turn on alerts.`);
+    try { localStorage.setItem(LANGUAGE_STORAGE_KEY, next.code); } catch { /* Session selection still works. */ }
+  }
+
+  async function enableAudio() {
+    const unsafe = data?.safety.seatbelt_status === 'unfastened';
+    const result = await speak(unsafe ? 'seatbelt' : 'greeting');
+    if (result === 'cancelled' || !mounted.current) return;
+    if (result === 'started' && unsafe) lastAlert.current = `${language.code}:${data.safety.log_id}`;
+    setAudioEnabled(result === 'started');
   }
 
   useEffect(() => {
     if (!data?.shift || !audioEnabled) return;
-    if (data.safety.seatbelt_status === 'unfastened' && lastAlert.current !== data.safety.log_id) {
-      lastAlert.current = data.safety.log_id;
-      speak('कृपया सीट बेल्ट लगाएँ।');
+    const alertKey = `${language.code}:${data.safety.log_id}`;
+    if (data.safety.seatbelt_status === 'unfastened' && lastAlert.current !== alertKey) {
+      lastAlert.current = alertKey;
+      void speak('seatbelt');
     }
-  }, [data?.safety.log_id, data?.shift?.id, audioEnabled]);
+  }, [data?.safety.log_id, data?.shift?.id, audioEnabled, language.code]);
 
   async function mutate(path, extra = {}) {
     if (busyRef.current) return false;
@@ -105,11 +128,13 @@ export function WorkspaceProvider({ children }) {
     setData(null);
     setError('');
     lastAlert.current = null;
+    playerRef.current.stop();
+    setAudioEnabled(false);
     setOperatorId(id);
   }
 
   return <Workspace.Provider value={{ data, operators, operatorId, selectOperator, refresh, error, busy, mutate,
-    enableAudio, audioEnabled, voiceMessage }}>{children}</Workspace.Provider>;
+    enableAudio, audioEnabled, voiceMessage, language, selectLanguage }}>{children}</Workspace.Provider>;
 }
 
 function ErrorBanner() {
@@ -119,26 +144,31 @@ function ErrorBanner() {
 }
 
 function ShiftPanel() {
-  const { data, operators, operatorId, selectOperator, mutate, busy, error, enableAudio, audioEnabled, voiceMessage } = useContext(Workspace);
+  const { data, operators, operatorId, selectOperator, mutate, busy, error, enableAudio, audioEnabled, voiceMessage, language, selectLanguage } = useContext(Workspace);
   return <section className="shift-controls">
     <div><label htmlFor="operator">Demo operator</label><select id="operator" value={operatorId} disabled={busy} onChange={event => selectOperator(event.target.value)}>
       {operators.length ? operators.map(operator => <option key={operator.operator_id} value={operator.operator_id}>{operator.name} · {operator.operator_id}</option>) : <option value="OP1001">OP1001</option>}
     </select><p className="small-note">Demo selection, not an authenticated login.</p></div>
-    <div className="shift-actions">{data?.shift ? <span className="shift-started"><CheckCircle2 size={18}/> Shift started at {timeLabel(data.shift.started_at)}</span> : <button className="button primary" disabled={!data || busy || !!error} onClick={() => { enableAudio(); mutate('/api/shifts/start'); }}>शिफ्ट शुरू करें · Start shift</button>}
-      {data?.shift && <button className="button secondary" onClick={enableAudio}><Volume2 size={16}/>{audioEnabled ? 'Check Hindi audio' : 'Enable Hindi audio'}</button>}
+    <div className="shift-actions"><label htmlFor="safety-language">Safety audio language</label>
+      <select id="safety-language" value={language.code} onChange={event => selectLanguage(event.target.value)}>
+        {SAFETY_LANGUAGES.map(item => <option key={item.code} value={item.code}>{item.nativeName} / {item.name}</option>)}
+      </select>
+      <p className="small-note">{`${language.name} audio is included. No voice installation needed.`}</p>
+      {data?.shift ? <span className="shift-started"><CheckCircle2 size={18}/> Shift started at {timeLabel(data.shift.started_at)}</span> : <button className="button primary" disabled={!data || busy || !!error} onClick={() => { enableAudio(); mutate('/api/shifts/start'); }}>शिफ्ट शुरू करें · Start shift</button>}
+      {data?.shift && <button className="button secondary" onClick={enableAudio}><Volume2 size={16}/>{audioEnabled ? `Check ${language.name} audio` : `Enable ${language.name} audio`}</button>}
       <p className="small-note" role="status">{voiceMessage}</p>
     </div>
   </section>;
 }
 
 export function SafetyCard({ controls = false }) {
-  const { data, mutate, busy, error } = useContext(Workspace);
+  const { data, mutate, busy, error, language } = useContext(Workspace);
   if (!data) return null;
   const status = data.safety.seatbelt_status;
   const danger = status === 'unfastened';
   return <section className={`safety-card ${danger ? 'warning' : ''}`}>
     <div className="section-heading"><h2><ShieldCheck size={20}/> Seatbelt check</h2><span className="badge">{data.safety.data_source === 'sample_replay' ? 'Sample replay' : 'Demo fixture'} · Not live</span></div>
-    <p className="seatbelt-value" role="status">{danger ? 'कृपया सीट बेल्ट लगाएँ। · Please fasten your seatbelt.' : status === 'fastened' ? 'Sample status: fastened' : 'Seatbelt status unknown'}</p>
+    <p className="seatbelt-value" role="status">{danger ? <><span lang={language.code}>{language.seatbelt}</span>{language.code !== 'en-IN' && <span lang="en"> / Please fasten your seatbelt.</span>}</> : status === 'fastened' ? 'Sample status: fastened' : 'Seatbelt status unknown'}</p>
     <p className="small-note">This is a recorded sample, not a sensor reading from your machine. {data.safety.timestamp && `Recorded ${new Date(data.safety.timestamp).toLocaleString()}.`}</p>
     {controls ? <div className="replay-controls"><button className="button secondary" disabled={busy || !!error || !data.shift || danger} onClick={() => mutate('/api/safety/replay', { seatbelt_status: 'unfastened' })}>Replay unfastened sample</button><button className="button neutral" disabled={busy || !!error || !data.shift || status === 'fastened'} onClick={() => mutate('/api/safety/replay', { seatbelt_status: 'fastened' })}>Replay fastened sample</button>{!data.shift && <p className="small-note">Start your shift to use sample replay.</p>}</div> : <Link className="text-link" to="/safety">Open safety and replay a sample</Link>}
   </section>;

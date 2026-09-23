@@ -93,3 +93,25 @@ Unknown or unavailable readings are not treated as safe. The replay API is an ex
 `DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment, not `.env` files automatically. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
 
 This is a demo API with no authentication or access controls; use demo data only.
+
+## Multilingual safety audio
+My Day and Safety offer Hindi, Tamil, English, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, and Punjabi. The browser remembers the selection. Each language includes a synthesized greeting and seatbelt-warning MP3 in `frontend/public/audio/safety`; no installed speech voice or live TTS service is needed during playback. Native text and an English translation remain visible for the warning.
+
+Changing language stops playback and asks the operator to enable audio again. A reload also requires enabling audio. Playback failures keep visual alerts active. Audio files are served alongside the frontend; full offline application loading and guaranteed offline caching are not implemented yet.
+
+The separate device-check page still tests browser Hindi speech synthesis; that diagnostic does not determine whether bundled safety audio works.
+
+### Generate or update clips
+The committed files are ready to use. Generation is a development-only operation using gTTS 2.5.4 (Google Translate speech) and mutagen for MP3 validation. It sends only the fixed prompt text to the speech service and does not run as part of deployment or normal app use.
+
+From the repository root:
+```powershell
+backend/.venv/Scripts/python.exe -m pip install --target tmp/audio-tools -r scripts/requirements-audio.txt
+backend/.venv/Scripts/python.exe scripts/generate-safety-audio.py --tools-dir tmp/audio-tools
+```
+
+Use `--language pa-IN` to regenerate Punjabi only. The generator hashes prompt text into filenames, verifies MP3 duration, and records text, size, and duration in `frontend/src/lib/safetyAudioManifest.json`. Prompt edits require regeneration. Clips are synthesized demo assets; pronunciation has not been independently reviewed by native speakers.
+
+Run `npm.cmd test` from `frontend` to verify asset coverage, text consistency, and playback/error handling without installed voices. Run `npm.cmd run build` to include the clips in the production output.
+
+References: https://gtts.readthedocs.io/en/stable/module.html and https://github.com/pndurette/gTTS

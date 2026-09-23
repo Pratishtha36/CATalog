@@ -1,0 +1,142 @@
+{
+  "pa-IN": {
+    "greeting": {
+      "url": "/audio/safety/pa-IN-greeting-bc36eedfee.mp3",
+      "text": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਕੈਬਵਾਈਜ਼ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ।",
+      "duration_seconds": 4.584,
+      "bytes": 36672
+    },
+    "seatbelt": {
+      "url": "/audio/safety/pa-IN-seatbelt-990bcc329c.mp3",
+      "text": "ਕਿਰਪਾ ਕਰਕੇ ਸੀਟ ਬੈਲਟ ਲਗਾਓ।",
+      "duration_seconds": 2.784,
+      "bytes": 22272
+    }
+  },
+  "hi-IN": {
+    "greeting": {
+      "url": "/audio/safety/hi-IN-greeting-313168b572.mp3",
+      "text": "नमस्ते! कैबवाइज़ में आपका स्वागत है।",
+      "duration_seconds": 3.648,
+      "bytes": 29184
+    },
+    "seatbelt": {
+      "url": "/audio/safety/hi-IN-seatbelt-4782579361.mp3",
+      "text": "कृपया सीट बेल्ट लगाएँ।",
+      "duration_seconds": 2.112,
+      "bytes": 16896
+    }
+  },
+  "ta-IN": {
+    "greeting": {
+      "url": "/audio/safety/ta-IN-greeting-06aae975ac.mp3",
+      "text": "வணக்கம்! கேப்வைஸுக்கு வரவேற்கிறோம்.",
+      "duration_seconds": 3.576,
+      "bytes": 28608
+    },
+    "seatbelt": {
+      "url": "/audio/safety/ta-IN-seatbelt-73fe501639.mp3",
+      "text": "தயவுசெய்து சீட் பெல்ட்டை அணியுங்கள்.",
+      "duration_seconds": 3.096,
+      "bytes": 24768
+    }
+  },
+  "en-IN": {
+    "greeting": {
+      "url": "/audio/safety/en-IN-greeting-8117845b5c.mp3",
+      "text": "Hello! Welcome to CabWise.",
+      "duration_seconds": 2.808,
+      "bytes": 22464
+    },
+    "seatbelt": {
+      "url": "/audio/safety/en-IN-seatbelt-d5edeadad5.mp3",
+      "text": "Please fasten your seatbelt.",
+      "duration_seconds": 2.184,
+      "bytes": 17472
+    }
+  },
+  "te-IN": {
+    "greeting": {
+      "url": "/audio/safety/te-IN-greeting-aaf191ea05.mp3",
+      "text": "నమస్కారం! క్యాబ్‌వైస్‌కు స్వాగతం.",
+      "duration_seconds": 3.48,
+      "bytes": 27840
+    },
+    "seatbelt": {
+      "url": "/audio/safety/te-IN-seatbelt-59b05f14be.mp3",
+      "text": "దయచేసి సీటు బెల్ట్ పెట్టుకోండి.",
+      "duration_seconds": 2.832,
+      "bytes": 22656
+    }
+  },
+  "kn-IN": {
+    "greeting": {
+      "url": "/audio/safety/kn-IN-greeting-1e79a88867.mp3",
+      "text": "ನಮಸ್ಕಾರ! ಕ್ಯಾಬ್‌ವೈಸ್‌ಗೆ ಸ್ವಾಗತ.",
+      "duration_seconds": 3.72,
+      "bytes": 29760
+    },
+    "seatbelt": {
+      "url": "/audio/safety/kn-IN-seatbelt-122af00a6a.mp3",
+      "text": "ದಯವಿಟ್ಟು ಸೀಟ್ ಬೆಲ್ಟ್ ಧರಿಸಿ.",
+      "duration_seconds": 2.856,
+      "bytes": 22848
+    }
+  },
+  "ml-IN": {
+    "greeting": {
+      "url": "/audio/safety/ml-IN-greeting-4f0fe47b23.mp3",
+      "text": "നമസ്കാരം! ക്യാബ്‌വൈസിലേക്ക് സ്വാഗതം.",
+      "duration_seconds": 3.216,
+      "bytes": 25728
+    },
+    "seatbelt": {
+      "url": "/audio/safety/ml-IN-seatbelt-8b2897b765.mp3",
+      "text": "ദയവായി സീറ്റ് ബെൽറ്റ് ധരിക്കുക.",
+      "duration_seconds": 2.472,
+      "bytes": 19776
+    }
+  },
+  "mr-IN": {
+    "greeting": {
+      "url": "/audio/safety/mr-IN-greeting-7c79732c0e.mp3",
+      "text": "नमस्कार! कॅबवाइसमध्ये आपले स्वागत आहे.",
+      "duration_seconds": 3.888,
+      "bytes": 31104
+    },
+    "seatbelt": {
+      "url": "/audio/safety/mr-IN-seatbelt-79debf2911.mp3",
+      "text": "कृपया सीट बेल्ट लावा.",
+      "duration_seconds": 2.112,
+      "bytes": 16896
+    }
+  },
+  "bn-IN": {
+    "greeting": {
+      "url": "/audio/safety/bn-IN-greeting-e1249c2d35.mp3",
+      "text": "নমস্কার! ক্যাবওয়াইজে আপনাকে স্বাগত।",
+      "duration_seconds": 3.84,
+      "bytes": 30720
+    },
+    "seatbelt": {
+      "url": "/audio/safety/bn-IN-seatbelt-086515e785.mp3",
+      "text": "অনুগ্রহ করে সিট বেল্ট বাঁধুন।",
+      "duration_seconds": 3.288,
+      "bytes": 26304
+    }
+  },
+  "gu-IN": {
+    "greeting": {
+      "url": "/audio/safety/gu-IN-greeting-aeac74b424.mp3",
+      "text": "નમસ્તે! કેબવાઇઝમાં આપનું સ્વાગત છે.",
+      "duration_seconds": 3.912,
+      "bytes": 31296
+    },
+    "seatbelt": {
+      "url": "/audio/safety/gu-IN-seatbelt-6ef99b2bc0.mp3",
+      "text": "કૃપા કરીને સીટ બેલ્ટ બાંધો.",
+      "duration_seconds": 3.048,
+      "bytes": 24384
+    }
+  }
+}
