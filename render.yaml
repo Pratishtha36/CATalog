@@ -1,7 +1,9 @@
 services:
   - type: web
-    name: cabwise-api
+    name: catalog-api
     runtime: python
+    # Temporary demo only: this plan has no persistent disk.
+    plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT

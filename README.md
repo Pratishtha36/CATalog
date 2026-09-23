@@ -1,6 +1,6 @@
-# CabWise
+# CATalog
 
-A phone-first operator companion for older construction equipment. This repository implements **steps 1–6**: application foundation, a seeded SQLite database, persistent daily task/basic safety workflows, SwingSense motion capture, and a labelled-recording classifier training workflow. Real-phone data collection and field accuracy validation remain outstanding.
+A phone-first operator companion for older construction equipment. The MVP implements task management, multilingual safety audio, SwingSense motion capture and classifier training, explainable operational insights, and incident reporting with offline photo queues. Real-phone and field-accuracy validation remain outstanding.
 
 Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and demo journey.
 
@@ -88,7 +88,7 @@ These are authored **demo fixtures**, not the original CAT CSV dataset. The impl
 4. Return to My Day, refresh, and verify the task remains in progress. Finish it to store actual elapsed time; another task can now start.
 5. Open Safety. Replay the unfastened sample to display the Hindi warning and play it if audio is enabled. Repeating the same sample does not append duplicate log rows or replay the alert. Replay fastened, then unfastened to demonstrate a new transition.
 
-Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Task/incident offline queues and utility proximity are not implemented. SwingSense has its own durable motion queue and classifier workflow described below.
+Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline task queues and utility proximity are not implemented. Incident reporting has a separate durable queue. SwingSense has its own durable motion queue and classifier workflow described below.
 
 `DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment, not `.env` files automatically. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
 
@@ -166,3 +166,11 @@ Motion drafts are checkpointed after each complete window, then finalized every 
 | `POST /api/motion/train` | Trains from 12-100 phone recordings (at least 3/class; at most 100,000 samples). |
 
 Run the backend integration/training tests and `npm.cmd test` in frontend. Tests use temporary databases; they never reset demo tasks or train the actual phone-model artifact.
+
+
+## Insights and incident reporting
+The next milestone adds explainable operational insights at `/insights` and photo-capable incident reporting at `/incidents`. Reports persist in IndexedDB before upload, retry with a stable ID, and sync across routes while the app remains open. Machine-log sources are kept separate; missing telemetry remains unknown.
+
+See [manual checks and API details](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md). CoachCard, time prediction, proximity mapping, general offline task support, and supervisor aggregation remain pending.
+
+For the complete dashboard setup, environment variables, free-versus-persistent storage options, and phone checks, see [Deployment guide](docs/DEPLOYMENT.md).

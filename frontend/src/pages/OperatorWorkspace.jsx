@@ -221,7 +221,7 @@ export function MyDay() {
 }
 
 export function SafetyPage() {
-  return <><p className="eyebrow">BASIC SAFETY</p><h1>Make the check part of your shift.</h1><p className="muted intro">Replay a sample seatbelt status to see the alert flow. This demo has no live machine connection.</p><ErrorBanner/><ShiftPanel/><SafetyCard controls/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Pre-dig review</h3><p>Trenching tasks open a demo acknowledgement before they can start. Utility mapping and incident capture are planned for later steps.</p><Link className="text-link" to="/">Review today’s tasks</Link></div></section></>;
+  return <><p className="eyebrow">BASIC SAFETY</p><h1>Make the check part of your shift.</h1><p className="muted intro">Replay a sample seatbelt status to see the alert flow. This demo has no live machine connection.</p><ErrorBanner/><ShiftPanel/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Incident and near-miss reporting</h3><p>Record an observation with an optional photo. Reports save locally and sync when connected.</p></div><Link className="button primary" to="/incidents">Report an incident</Link></section><SafetyCard controls/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Pre-dig review</h3><p>Trenching tasks open a demo acknowledgement before they can start. Utility mapping is planned for a later step. Incident reporting is available now.</p><Link className="text-link" to="/">Review today’s tasks</Link></div></section></>;
 }
 
 export function PreDigPage() {

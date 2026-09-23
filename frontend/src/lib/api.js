@@ -1,4 +1,5 @@
 const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+export const apiUrl = path => `${base}${path}`;
 
 export async function request(path, options = {}) {
   const controller = new AbortController();

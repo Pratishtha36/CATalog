@@ -27,3 +27,12 @@ The above checks describe the earlier steps 1-4 milestone. Motion capture, motio
 - The running Vite proxy returned API v0.3.0 and the synthetic model with its correct source and 40 trees.
 - Actual browser rendering and physical-phone capture were not tested: no connected browser or sensor device was available. Real phone recordings and field validation remain outstanding.
 - Manual verification: see SWINGSENSE_MANUAL_CHECKS.md.
+
+
+## Insights and incidents milestone
+- The complete 28-test backend suite passed, followed by all 7 operations tests after adding the overrun-boundary check: 29 distinct backend tests verified.
+- All 19 frontend tests passed, including durable incident/photo recovery, receipt validation, duplicate-free history, and concurrent sync.
+- Final production build passed. No new runtime dependencies were introduced.
+- Running API v0.4.0 responds through Vite; the historical demo source returns exactly idle and fuel flags, and the incidents endpoint returns saved report summaries.
+- Test reports/photos use disposable databases and were not inserted into the operator database.
+- Browser layout, native camera/file selection, and real-device offline interaction remain manual checks; no connected browser was available. See INSIGHTS_INCIDENTS_MANUAL_CHECKS.md.

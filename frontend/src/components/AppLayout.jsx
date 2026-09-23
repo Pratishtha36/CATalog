@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import IncidentSync from './IncidentSync';
 import { Activity, BookOpen, HardHat, LayoutDashboard, Lightbulb, Menu, Radio, ShieldCheck, Smartphone, Sun, Wrench, X } from 'lucide-react';
 
 const primaryLinks = [
@@ -7,7 +8,7 @@ const primaryLinks = [
   ['/insights', 'Insights', Lightbulb], ['/training', 'Training', BookOpen],
 ];
 const utilityLinks = [
-  ['/device-check', 'Device check', Smartphone], ['/estimate', 'Time estimate', Wrench],
+  ['/incidents', 'Incident reports', ShieldCheck], ['/device-check', 'Device check', Smartphone], ['/estimate', 'Time estimate', Wrench],
   ['/dashboard', 'Supervisor view', LayoutDashboard],
 ];
 
@@ -68,6 +69,7 @@ export default function AppLayout({ children, connection }) {
   }
 
   return <div className="app-shell">
+    <IncidentSync/>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside id="workspace-navigation" ref={sidebarRef} className={`sidebar ${menuOpen ? 'is-open' : ''}`} onClick={onNavigate}>
       <Brand/>

@@ -19,7 +19,7 @@ Demonstrate an affordable Hindi-speaking operator companion for older constructi
 - Demo pre-dig acknowledgement before trenching/excavation begins.
 - Sample seatbelt replay with Hindi/visual alerts, never represented as live telemetry.
 
-Authentication, machine ECU telemetry, utility proximity, incident capture, task/incident offline sync, and lesson generation remain unimplemented. Incident/lesson/completion tables are schema preparation only.
+Authentication, machine ECU telemetry, utility proximity, offline task updates, and lesson generation remain unimplemented. Lesson/completion tables are schema preparation only. Incident reporting and its offline queue are now implemented.
 
 ## Target MVP (future milestones)
 | Feature | Acceptance criterion |
@@ -68,3 +68,6 @@ React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel is implemented.
 - Clearly labelled laptop simulator, local motion checkpoints/queue, and idempotent machine-log ingestion.
 - Manually labelled raw recordings, CSV export, Random Forest training, grouped evaluation, local JSON forest inference and rules fallback.
 - A synthetic-only trained demonstration model, excluded from phone inference. Real phone recording collection and field validation require the demo device and remain outstanding.
+
+## Current milestone: operational insights and incident reporting
+Explainable rules with source-separated machine data, evidence, record coverage, and task overruns. Incident/near-miss/unsafe-condition forms with optional photo, durable local saving, cross-route background sync, exact-retry protection, and server history/photo retrieval. See INSIGHTS_INCIDENTS_MANUAL_CHECKS.md.

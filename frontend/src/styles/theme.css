@@ -196,6 +196,24 @@ main { max-width: 1280px; margin: auto; padding: 36px 40px 64px; }
 .model-panel td:first-child { text-transform: capitalize; font-weight: 600; }
 .model-panel tbody tr:nth-child(odd) { background: rgba(163, 177, 198, .14); }
 
+/* Operational insights and durable incident reporting */
+.insight-controls, .insight-coverage, .insight-card, .incident-form, .incident-card { background: var(--surface); padding: var(--space-8); border-radius: var(--radius-card); box-shadow: var(--raised); margin: 28px 0; }
+.insight-controls { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+.insight-controls label { display: grid; gap: 12px; flex: 1; min-width: 200px; }
+.insight-controls .small-note { width: 100%; }
+.insight-card .section-heading, .incident-card .section-heading { margin: 0 0 16px; }
+.incident-form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 24px; min-width: 0; }
+.incident-form label { display: grid; gap: 12px; }
+.incident-form textarea { resize: vertical; }
+.incident-form .button { justify-self: start; }
+.photo-picker span { display: flex; align-items: center; gap: 12px; }
+.photo-picker input { max-width: 100%; }
+.incident-photo, .photo-preview img { display: block; max-width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-control); margin: 16px 0; }
+.incident-note { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 16px; }
+.report-error { color: var(--danger); margin-top: 12px; font-size: 13px; }
+.report-message { color: var(--success); margin-top: 20px; }
+@media (max-width: 767px) { .insight-controls, .insight-coverage, .insight-card, .incident-form, .incident-card { padding: 24px; border-radius: 24px; } }
+
 /* Responsive layouts */
 @media (max-width: 1180px) {
   .sidebar { width: 208px; left: 16px; padding: 24px 16px; }

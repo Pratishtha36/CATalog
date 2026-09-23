@@ -3,11 +3,12 @@ import { Link, Routes, Route } from 'react-router-dom';
 import { Sun, Activity, ShieldCheck, Lightbulb, BookOpen, ArrowUpRight, ArrowRight, LayoutDashboard, MapPin, Volume2, CheckCircle2 } from 'lucide-react';
 import { checkHealth } from './lib/api';
 import Live from './pages/Live';
+import Insights from './pages/Insights';
+import Incidents from './pages/Incidents';
 import AppLayout from './components/AppLayout';
 import { WorkspaceProvider, MyDay, SafetyPage, PreDigPage } from './pages/OperatorWorkspace';
 
 const modules = {
-  '/insights': ['Insights', 'Understand your working day.', 'See the numbers behind idle time, task overruns, and fuel consumption.', 'Performance insights will appear once machine logs are connected.', Lightbulb],
   '/training': ['CoachCard', 'Small lessons. Better habits.', 'Personalised Hindi audio lessons based on your recent work, followed by a short quiz.', 'Lessons and training progress arrive in a later milestone.', BookOpen],
   '/estimate': ['Time estimate', 'Plan the next task.', 'Task duration estimates using task type, weather, machine age, and recorded operator skill.', 'The prediction model is not connected yet.', Sun],
   '/dashboard': ['Supervisor', 'Your site, at a glance.', 'Task progress, recent alerts, incidents, and training completion.', 'Fleet totals will appear when operator data is connected.', LayoutDashboard],
@@ -105,5 +106,5 @@ function DeviceCheck() {
 }
 
 export default function App() {
-  return <WorkspaceProvider><AppLayout connection={<BackendStatus/>}><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></AppLayout></WorkspaceProvider>;
+  return <WorkspaceProvider><AppLayout connection={<BackendStatus/>}><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/insights" element={<Insights/>}/><Route path="/incidents" element={<Incidents/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></AppLayout></WorkspaceProvider>;
 }
