@@ -1,4 +1,4 @@
-"""CabWise demo API: persistent tasks and explicit sample-data safety replay."""
+"""CATalog demo API: persistent tasks and explicit sample-data safety replay."""
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -60,7 +60,7 @@ def create_app(database_url=None, model_dir=None):
         yield
         engine.dispose()
 
-    app = FastAPI(title='CabWise API', version='0.5.0', lifespan=lifespan)
+    app = FastAPI(title='CATalog API', version='0.5.0', lifespan=lifespan)
     app.state.engine = engine
     frontend_url = (os.getenv('FRONTEND_URL') or os.getenv('frontend_url')
                     or os.getenv('CORS_ORIGINS')
@@ -90,10 +90,11 @@ def create_app(database_url=None, model_dir=None):
                 'timestamp': as_utc(row.timestamp).isoformat() if row else None,
                 'log_id': row.id if row else None, 'is_live': False}
 
+    @app.get('/health')
     @app.get('/api/health')
     def health(session: Session = Depends(session_dependency)):
         session.execute(text('SELECT 1'))
-        return {'status': 'ok', 'service': 'cabwise-api', 'version': '0.5.0', 'database': engine.dialect.name}
+        return {'status': 'ok', 'service': 'catalog-api', 'version': '0.5.0', 'database': engine.dialect.name}
 
     @app.get('/api/operators')
     def operators(session: Session = Depends(session_dependency)):

@@ -1,6 +1,6 @@
 # Deploy CATalog on Render and Vercel
 
-Both services deploy from `Pratishtha36/CabWise`, branch `main`. The repository name can stay CabWise. Deploy the backend first so its real origin can be supplied to the frontend build. Use demo data: authentication and production access controls are not implemented.
+Both services deploy from `Pratishtha36/CATalog`, branch `main`. Deploy the backend first so its real origin can be supplied to the frontend build. Use demo data: authentication and production access controls are not implemented.
 
 ## 1. Render backend
 
@@ -14,7 +14,7 @@ In Render, select New > Web Service, connect GitHub, and select the repository.
 | Runtime | Python 3 |
 | Build command | `pip install -r requirements.txt` |
 | Start command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
-| Health check | `/api/health` |
+| Health check | `/health` (`/api/health` also remains available) |
 | Environment | `PYTHON_VERSION=3.13.7` |
 | Initial CORS environment | `FRONTEND_URL=http://localhost:5173` (replace after the Vercel URL is assigned) |
 
@@ -74,6 +74,7 @@ Changing `VITE_API_URL` on Vercel requires a new frontend deployment because Vit
 
 ## Troubleshooting
 
+- SciPy metadata-generation failure: verify the build log uses Python 3.13.7. Set Render `PYTHON_VERSION=3.13.7`, then clear the build cache and redeploy. The backend `.python-version` pins the same version, but a Render environment override takes precedence. The pinned SciPy version has Python 3.13 wheels; newer Python versions may trigger an unsupported source build.
 - Render deploy fails: inspect its build/runtime logs. Verify Root directory is backend and the start command uses `$PORT` (Render runs Linux, not PowerShell).
 - Vercel build requests VITE_API_URL: add the actual HTTPS Render origin and redeploy.
 - Backend unavailable: open the Render health URL first. A waking free service may exceed the frontend's 12-second timeout; retry once it is awake.

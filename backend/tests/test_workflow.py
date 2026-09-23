@@ -161,7 +161,11 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(self.action(1, 'finish').status_code, 200)
 
     def test_health_and_cors_for_mutations(self):
-        self.assertEqual(self.client.get('/api/health').json()['service'], 'cabwise-api')
+        self.assertEqual(self.client.get('/api/health').json()['service'], 'catalog-api')
+        response = self.client.get('/health')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), self.client.get('/api/health').json())
+        self.assertEqual(response.json()['status'], 'ok')
         allowed = self.client.options('/api/shifts/start', headers={'Origin': 'http://localhost:5173', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type'})
         self.assertEqual(allowed.status_code, 200)
         self.assertEqual(allowed.headers['access-control-allow-origin'], 'http://localhost:5173')

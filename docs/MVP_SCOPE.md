@@ -1,4 +1,4 @@
-# CabWise MVP scope
+# CATalog MVP scope
 
 ## Objective
 Demonstrate an affordable Hindi-speaking operator companion for older construction equipment, using a phone for basic activity observations and an operator-to-supervisor workflow.

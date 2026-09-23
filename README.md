@@ -49,7 +49,7 @@ cd frontend
 npm.cmd run build
 ```
 
-With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` should return `status: ok` and `service: cabwise-api`.
+With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` should return `status: ok` and `service: catalog-api`.
 
 ## Deploy over HTTPS
 1. Push this directory to your GitHub repository.

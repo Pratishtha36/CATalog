@@ -91,7 +91,7 @@ function DeviceCheck() {
     const hindiVoice = voices.find(item => item.lang.toLowerCase().startsWith('hi'));
     if (!hindiVoice) return setVoice('No Hindi voice found. Install a Hindi system voice and retry; recorded audio is planned as a fallback.');
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance('नमस्ते! कैबवाइज़ में आपका स्वागत है। कृपया सीट बेल्ट लगाएँ।');
+    const utterance = new SpeechSynthesisUtterance('नमस्ते! कैटलॉग में आपका स्वागत है। कृपया सीट बेल्ट लगाएँ।');
     utterance.lang = 'hi-IN'; utterance.voice = hindiVoice;
     utterance.onend = () => alive.current && setVoice('Playback finished — confirm that you heard Hindi clearly.');
     utterance.onerror = event => alive.current && setVoice(`Playback failed: ${event.error}`);

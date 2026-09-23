@@ -22,7 +22,7 @@ export async function request(path, options = {}) {
 
 export async function checkHealth(signal) {
   const body = await request('/api/health', { signal });
-  if (body.status !== 'ok' || body.service !== 'cabwise-api') throw new Error('Unexpected backend response');
+  if (body.status !== 'ok' || body.service !== 'catalog-api') throw new Error('Unexpected backend response');
   return body;
 }
 
