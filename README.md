@@ -1,24 +1,70 @@
-# CATalog
+﻿# CATalog
 
-A phone-first operator companion for older construction equipment. The MVP implements task management, multilingual safety audio, SwingSense motion capture and classifier training, explainable operational insights, and incident reporting with offline photo queues. Real-phone and field-accuracy validation remain outstanding.
+**A phone-first operator assistant for the Caterpillar hackathon.** CATalog brings daily work, safety reminders, activity observations, personalised training and task planning into one interface for older construction equipment.
 
-Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and demo journey.
+Its three named modules are **SwingSense** (phone motion estimates), **DigSafe** (sample utility proximity) and **CoachCard** (Hindi coaching from recorded evidence). The operator interface runs on a phone; the supervisor view also works on a laptop.
 
-## Implemented
-- Responsive React/Vite app with Tailwind and React Router.
-- My Day with demo operator selection, start shift, and persisted task start/finish timestamps and actual durations.
-- One active task per operator and machine; duplicate requests preserve the original timestamp.
-- Demo pre-dig acknowledgement before trenching starts (no mapped utility checks yet).
-- Sample-data seatbelt replay with a visual warning and Hindi audio when a device voice is available.
-- PostgreSQL/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, completions, and trained phone models, with SQLite fallback locally. CoachCard lessons and quiz completions are implemented.
-- FastAPI health endpoint, frontend connection indicator, and retry.
-- Tap-to-run motion, GPS, and Hindi speech checks; no sensor data uploads.
-- Deployment configuration for Vercel and Render.
+Repository: [Pratishtha36/CATalog](https://github.com/Pratishtha36/CATalog).
+
+> This is a demonstration, not a certified safety or machine-control system. Utility lines and task-time training data are synthetic; seatbelt status is sample replay. Operator selection is not authentication. Real-phone and real-machine acceptance remain separate from automated tests.
+
+## Implemented features
+
+| Module | Route | Functionality |
+| --- | --- | --- |
+| My Day | `/` | Daily tasks, add activity, start shift, task start/finish, elapsed and actual durations, carried-over active work and pre-dig acknowledgement. |
+| SwingSense | `/live` | Phone motion capture, activity estimates, cycle counts, idle estimates, laptop simulator, labelled recordings, CSV export, Random Forest training and offline observation queues. |
+| Safety | `/safety` | Sample seatbelt replay, visual alerts and bundled greetings/warnings in ten Indian languages. |
+| DigSafe | `/dig-safe` | Synthetic utility map, draggable/tappable simulated position, accessible slider, optional phone GPS and 20/10/5 m demo warning zones. |
+| Insights | `/insights` | Explainable idle, fuel-per-cycle, repeated seatbelt and task-overrun flags with source selection, supporting evidence and CoachCard links. |
+| Incident reports | `/incidents` | Incident, near-miss and unsafe-condition reports with optional photo/location, local persistence, retry-safe sync and saved history. |
+| CoachCard | `/training` | Evidence-based Hindi lessons, optional Gemini generation, cached template fallback, spoken quizzes, server-side grading and saved learning progress. |
+| Time estimate | `/estimate` | Synthetic Gradient Boosting predictions, planning ranges, model factors, held-out evaluation and adding predicted tasks to My Day. |
+| Supervisor | `/dashboard` | Task progress, source-separated observations, incidents and training completions; refreshes every 15 seconds. |
+| Shift handover | `/handover` | Current site-day work/incident summary, Hindi speech on supported devices and explicit unknown fuel/fault values. |
+| Device check | `/device-check` | Tap-to-run motion, location and device Hindi-voice diagnostics. |
+
+The responsive interface uses CAT-inspired yellow/black accents, soft-depth components, mobile navigation, visible keyboard focus and hidden visual scrollbars while retaining scrolling.
+
+## Technology
+
+| Layer | Stack |
+| --- | --- |
+| Frontend | React 19, Vite, React Router, Lucide icons, custom CSS tokens and Tailwind integration |
+| Backend | Python 3.13.7, FastAPI, Uvicorn, SQLModel / SQLAlchemy |
+| Database | Supabase PostgreSQL transaction pooler; SQLite fallback for local development/tests |
+| Offline | Dexie / IndexedDB and a production service worker for the app shell and bundled audio |
+| Machine learning | scikit-learn, NumPy, SciPy; Random Forest classification and Gradient Boosting regression |
+| Coaching AI | Optional server-side Gemini API; default model `gemini-3.1-flash-lite` |
+| Sensors/audio | DeviceMotion, Geolocation, SpeechSynthesis and bundled MP3s |
+| Utility map | Local SVG plan with point-to-line distance calculations; no external map tiles |
+| Deployment | Vercel frontend and Render backend |
 
 ## Run locally on Windows
-Use two PowerShell terminals from the repository root. `npm.cmd` avoids PowerShell restrictions on unsigned npm.ps1 scripts.
 
-Backend:
+Use two PowerShell terminals, starting from the repository root. `npm.cmd` avoids PowerShell restrictions on `npm.ps1`.
+
+### 1. Configure the backend
+
+Create an ignored `backend/.env` using [backend/.env.example](backend/.env.example) as a reference:
+
+```dotenv
+FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
+DATABASE_URL=postgresql://postgres.PROJECT_REF:ENCODED_PASSWORD@POOLER_HOST:6543/postgres?sslmode=require
+
+# Optional: omit this line until you have an actual private key
+# GEMINI_API_KEY=your-private-key
+GEMINI_MODEL=gemini-3.1-flash-lite
+```
+
+Replace the database placeholder with the full URI from **Supabase → Connect → Transaction pooler**. URL-encode special characters in the password. Keep credentials out of Git and screenshots.
+
+For local SQLite, omit `DATABASE_URL`. The existing `backend/cabwise.db` filename is retained for compatibility with saved local data. SQLite records are **not automatically copied** to Supabase.
+
+### 2. Start the backend
+
+Use Python 3.13.7. Create the virtual environment once; reuse it on later runs.
+
 ```powershell
 cd backend
 python -m venv .venv
@@ -26,155 +72,245 @@ python -m venv .venv
 .venv/Scripts/python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Frontend:
+### 3. Start the frontend
+
+In the second terminal:
+
 ```powershell
 cd frontend
 npm.cmd ci
-npm.cmd run dev
+npm.cmd run dev -- --port 5173 --strictPort
 ```
 
-Open http://localhost:5173. Vite proxies `/api` to http://127.0.0.1:8000, so a local frontend environment file is optional. API docs: http://127.0.0.1:8000/docs. Click the connection indicator to retry after starting the backend.
+Open **http://localhost:5173**. Keep both terminals running; press `Ctrl+C` to stop either server.
 
-## Validation
-Backend integration tests use temporary databases and do not reset demo data:
+- API documentation: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/health
+- Compatibility health route: http://127.0.0.1:8000/api/health
+
+Vite proxies `/api` to the laptop backend at `127.0.0.1:8000`. A frontend environment file is unnecessary for normal local development. Health checks query the database and return `status`, `service`, `version` and the database engine name.
+
+## Environment variables
+
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Backend | Full PostgreSQL URI; required on Render. |
+| `FRONTEND_URL` | Backend | Allowed frontend origin, or comma-separated origins, without page paths. |
+| `GEMINI_API_KEY` | Backend only | Optional credential for generating AI lesson drafts. |
+| `GEMINI_MODEL` | Backend | Defaults to `gemini-3.1-flash-lite`. |
+| `PYTHON_VERSION` | Render | Set to `3.13.7`, matching `backend/.python-version`. |
+| `VITE_API_URL` | Vercel frontend | Public HTTPS backend origin, without `/api` or another path. |
+
+Lowercase `frontend_url` and `database_url` aliases work. Use uppercase names consistently to avoid ambiguity. Legacy `CORS_ORIGINS` is a fallback when no frontend URL is set. Backend process environment takes precedence over the corresponding local `.env` settings.
+
+**Never put credentials in a `VITE_` variable:** frontend environment values are included in the browser bundle.
+
+## Deploy on Render and Vercel
+
+### Render backend
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `backend` |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| Health check | `/health` |
+| Python version | `PYTHON_VERSION=3.13.7` |
+| Required app variables | `DATABASE_URL`, `FRONTEND_URL` |
+
+[render.yaml](render.yaml) supplies the basic Blueprint configuration. For an existing manually configured service, check its dashboard settings explicitly. Add `GEMINI_API_KEY` there to enable AI generation.
+
+PostgreSQL connections require TLS, disable prepared statements and use transaction-scoped write locks for pooler compatibility. Application records, incident photos and API-trained phone models persist in the database; they do not require a Render disk. Startup creates missing tables and demo fixtures without resetting existing progress. It does not perform arbitrary existing-schema migrations.
+
+### Vercel frontend
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `frontend` |
+| Framework | Vite |
+| Install command | `npm ci` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Environment | `VITE_API_URL=https://YOUR-BACKEND.onrender.com` |
+
+Set Render's `FRONTEND_URL` to the actual Vercel HTTPS origin. Redeploy the frontend after changing `VITE_API_URL`; restart/redeploy the backend after changing its environment. The local Vite proxy does not run on Vercel.
+
+Check the deployed `/health` for `status: ok`, `service: catalog-api` and `database: postgresql`. Verify the frontend connection indicator and refresh a nested route such as `/training`.
+
+If SciPy fails during installation, confirm Render is actually using Python 3.13.7, then clear its build cache and redeploy. See [the deployment guide](docs/DEPLOYMENT.md) for additional troubleshooting and database configuration.
+
+## Feature details
+
+### My Day and saved data
+
+The demo seeds **OP1001**, **MC1001 / CAT 320D**, three tasks for the Asia/Kolkata site day and a historical machine-log fixture. Each new day receives pending tasks; unfinished active work carries over. One task can be active per operator and machine. Trenching and excavation require a demo pre-dig acknowledgement.
+
+Task actions preserve timestamps and actual elapsed duration. **Add activity** lets you continue after all scheduled tasks are complete. The fixtures are authored demo data, not the complete original CAT datasets. Unknown telemetry remains unknown.
+
+### Multilingual safety audio
+
+Bundled greetings and seatbelt warnings support **Hindi, Tamil, English, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati and Punjabi**. These clips require neither an installed system voice nor a runtime TTS service. Enable audio after a tap; changing language or reloading requires enabling it again. Visual alerts remain if playback fails.
+
+Seatbelt replay is labelled sample data. An unfastened transition produces an alert; repeating the same state does not append duplicate replay records. The device-check page separately tests system Hindi speech, which does not determine whether bundled safety audio works.
+
+### SwingSense
+
+Phone acceleration including gravity is resampled into two-second windows with a one-second advance. Nine features describe axis mean, standard deviation and energy. Threshold rules provide a fallback; a trained 40-tree Random Forest runs locally as a portable JSON model. A stable `dig → swing → dig` sequence counts an estimated load cycle.
+
+- Phone capture requires HTTPS, permission and the page in the foreground.
+- Idle estimation requires confirmation that the engine is running; a stationary phone cannot establish engine state.
+- The labelled laptop simulator and its synthetic model stay separate from real phone input.
+- Record at least three separate 15-second takes for each of idle, dig, swing and travel; export CSV or train from the UI.
+- Evaluation splits whole recordings before creating overlapping windows and reports per-class metrics.
+- Observations finalize every 60 observed seconds or on stop and queue locally for retry-safe upload.
+
+The phone does not measure fuel, engine hours or seatbelt state. Real excavator accuracy remains unvalidated. See [SwingSense manual checks](docs/SWINGSENSE_MANUAL_CHECKS.md).
+
+### Insights and incident reporting
+
+Insights show evidence behind idle-time, fuel-per-cycle, repeated seatbelt and >20% task-overrun flags. Machine-log sources stay separate: `demo_fixture`, `sample_replay`, `phone_estimate` and `simulation`. Missing coverage is visible; no flags does not establish safety.
+
+Incident reports support notes, optional coordinates and JPEG/PNG photos up to 2 MB at the API. Reports save to IndexedDB before upload, retain stable IDs during retries and sync across app routes. Saved history and photos are available from the backend. See [incident and insight checks](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md).
+
+### CoachCard: personalised training
+
+CoachCard produces a cached Hindi lesson and three-question quiz from selected evidence. Triggers include repeat seatbelt episodes within seven days, repeated >20% overruns for a task type, idle/fuel observations and reported near-misses in the sample utility area. Idle ranking uses comparable same-source records where available and a labelled threshold fallback when data is sparse.
+
+With `GEMINI_API_KEY`, the backend requests a structured Gemini lesson draft. It sends selected numeric evidence and fixed guidance, **not operator IDs, incident free text, photos or coordinates**. Returned JSON is validated. Provider failure or invalid output falls back to templates and remains retryable. Successful drafts are cached separately from completed template quizzes.
+
+Five Hindi topic lessons, fifteen spoken template questions and one utility warning are bundled as **21 audio clips**. A Hindi device voice can read current personalised text. Without one, bundled topic audio plays with an explicit fallback label. AI-specific questions and dynamic handover speech require a device voice or reading the visible transcript.
+
+Quiz answers are graded on the server. Best scores, passed lessons and learning progress persist across refreshes and backend restarts. Offline answers wait for server acknowledgement. **Passing a quiz does not certify operating skill or automatically reduce task estimates.**
+
+### Task-time estimation
+
+The Gradient Boosting demonstration uses task type, weather, recorded operator skill, machine age and a baseline estimate. It trains reproducibly on **2,000 synthetic rows**: 1,200 training, 400 calibration and 400 held-out test rows.
+
+The UI shows predicted minutes, a planning range, model-wide feature importance, held-out MAE and interval coverage. The interval targets 90% calibration coverage, not guaranteed field coverage. Baseline input is 5–240 minutes and supported machine age is 0–25 years. **Add to My Day** creates a task using the prediction with a stable retry ID.
+
+The data are generated from assumed factors and noise. Feature importance is not a causal explanation for an individual task. Reproduce evaluation from the repository root:
+
+```powershell
+backend/.venv/Scripts/python.exe backend/ml/time_model.py
+```
+
+### DigSafe, supervisor and handover
+
+DigSafe uses a local synthetic utility plan. Drag/tap the simulated position or use its slider; phone GPS is optional. Demo warnings change at 20, 10 and 5 metres. Stale GPS or accuracy worse than 10 metres is marked uncertain. The map does not detect buried utilities, track a bucket, set E-Fence depth or provide excavation clearance.
+
+Supervisor data refreshes every 15 seconds with a freshness timestamp. Handover summarizes the current site day's recorded work and incidents; fuel remaining and machine faults stay unknown when unmeasured.
+
+## Offline behaviour
+
+After the first online visit, the production service worker caches the app shell and bundled audio. IndexedDB caches operator tasks, safety snapshots, lessons and sample utility lines.
+
+| Operation | Offline behaviour |
+| --- | --- |
+| Start shift; start/finish cached tasks | Saved locally, then uploaded in order with original device timestamps. |
+| Answer a cached quiz | Queued locally; score appears after server acknowledgement. |
+| Record incident/photo | Saved locally; a separate queue retries after reconnection. |
+| Capture motion | Observations queue locally; cached models/rules remain available. |
+| Read cached lessons or utility map | Available from the last successful cache. |
+| Create a new activity, replay seatbelt samples, generate lessons or request an estimate | Requires the backend connection. |
+
+Keep the app open to sync. Failed task events pause later events; conflicts have visible retry/discard controls instead of silently overwriting server state. Task events older than seven days or over five minutes in the future are rejected. Cached safety information is historical, not live.
+
+Offline page loading works in **production builds**, not the Vite development server. Browser storage can be evicted and is not a backup. Abrupt closure can lose an unsaved motion window or unfinished recording.
+
+## Test on an Android phone
+
+1. Deploy both services over HTTPS and open the Vercel URL in Chrome on Android. Phone `localhost` refers to the phone; a plain HTTP LAN URL is insufficient for secure sensor access.
+2. Confirm **Backend connected**. In **Device check**, request motion/location access and verify readings.
+3. Start a shift in My Day, enable a safety language, add/start/finish a task and refresh to verify persistence.
+4. Try SwingSense phone capture with the page visible. Use the laptop simulator only for its labelled synthetic demonstration.
+5. In DigSafe, move the simulated point through warning zones, then try GPS and inspect its accuracy label.
+6. In Training, play a lesson, answer its quiz and check the saved score. In Time estimate, predict a task and add it to My Day.
+7. Allow production caching to finish, disconnect, record an incident and task/quiz changes, then reconnect with the app open. Verify syncing and the supervisor view on a second device.
+8. Check portrait/landscape layouts, nested-route refreshes and audio intelligibility on the actual demo device.
+
+See [the complete companion acceptance guide](docs/COMPANION_MANUAL_CHECKS.md) for detailed checks.
+
+## Tests and validation
+
+Backend tests use disposable databases, not the configured demo database:
+
 ```powershell
 cd backend
 .venv/Scripts/python.exe -m pip install -r requirements-dev.txt
 .venv/Scripts/python.exe -m unittest discover -s tests -v
 ```
 
-Frontend:
+Frontend tests and production build:
+
 ```powershell
 cd frontend
+npm.cmd test
 npm.cmd run build
 ```
 
-With the backend running, `Invoke-RestMethod http://127.0.0.1:8000/api/health` should return `status: ok` and `service: catalog-api`.
+The latest implementation verification passed **45 backend tests, 23 frontend tests and the production build**. The generated offline bundle was checked for all 45 referenced assets, including the 21 CoachCard clips. Tests cover retries, persistence, conflicts, provider mocks/fallbacks, geometry, model evaluation and audio integrity.
 
-## Deploy over HTTPS
-1. Push this directory to your GitHub repository.
-2. Create the Render service using `render.yaml`, or set root directory `backend`, build `pip install -r requirements.txt`, and start `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-3. Create a Vercel project with root directory `frontend`, build command `npm run build`, and output directory `dist`.
-4. Set Vercel `VITE_API_URL` to the HTTPS Render origin, without a trailing `/api`, and redeploy. Frontend environment values are bundled at build time; never place secrets there.
-5. Set Render `FRONTEND_URL` to the exact Vercel frontend origin (comma-separated if multiple). Restart the backend after changing it. `.env.example` documents configuration; the backend reads process environment variables and ignored `backend/.env`.
-6. Open the public frontend, verify the backend indicator, and refresh a nested route such as `/device-check`.
+Live Gemini responses, browser service-worker behaviour, audio intelligibility and physical-phone/field performance still require environment/device checks. Automated tests do not establish real-machine accuracy.
 
-Deployments have not been created automatically. Set Render `DATABASE_URL` to your Supabase transaction-pooler URI before deploying. PostgreSQL persists application records, incident photos, and trained phone models. See [deployment instructions](docs/DEPLOYMENT.md). Existing local SQLite data is retained but is not automatically copied to Supabase.
+## API overview
 
-## Real-phone acceptance checklist
-Open `/device-check` on the intended Android phone over HTTPS. An HTTP LAN address such as `http://192.168...:5173` will not provide a secure sensor context.
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health`, `GET /api/health` | Backend/database connectivity. |
+| `GET /api/operators`, `GET /api/operators/{id}`, `GET /api/machines/{id}` | Demo profiles. |
+| `GET /api/machine-logs` | Recent machine-log records. |
+| `GET /api/tasks/today`, `POST /api/tasks` | Daily work and activity creation. |
+| `POST /api/tasks/{id}/start`, `POST /api/tasks/{id}/finish` | Online task actions. |
+| `GET /api/shifts/current`, `POST /api/shifts/start` | Shift state. |
+| `GET /api/safety/status`, `POST /api/safety/replay` | Sample seatbelt state and replay. |
+| `POST /api/motion/ingest`, `GET /api/motion/recent` | Observation upload/history. |
+| `POST /api/motion/train`, `GET /api/motion/model` | Classifier training/retrieval. |
+| `GET /api/insights` | Source-separated flags and evidence. |
+| `POST /api/incidents`, `GET /api/incidents`, `GET /api/incidents/{id}/photo` | Reports, history and photos. |
+| `POST /api/predict-time` | Synthetic prediction and evaluation. |
+| `GET /api/training/assigned`, `POST /api/training/generate` | Cached lessons and generation. |
+| `POST /api/training/{id}/complete` | Retry-safe server quiz grading. |
+| `GET /api/utilities/near` | Sample utility GeoJSON. |
+| `GET /api/offline-pack`, `POST /api/sync` | Cache snapshot and one ordered task event per sync request. |
+| `GET /api/dashboard`, `GET /api/handover` | Supervisor and handover summaries. |
 
-- Confirm the backend indicator reports connected.
-- Tap Check motion, grant permission if requested, move the phone, and verify changing acceleration values. Stop listening; navigate away and back.
-- Tap Check location and verify coordinates and the reported accuracy. Permission denial should show a useful message.
-- Tap Play Hindi greeting and confirm audible, intelligible Hindi. If no Hindi voice is installed, the app reports that instead of claiming successful playback.
-- Try audio without connectivity to determine whether the selected device voice works offline. Production builds support cached offline loading after one online visit.
-- Check navigation at a narrow phone width and refresh a nested route.
+Use `/docs` for required query parameters and request schemas. Incident and motion queues retain their dedicated upload endpoints.
 
-Phone capability checks do not establish activity-classifier accuracy or suitability as a safety system.
+## Development utilities
 
-## Reference documentation
-- Tailwind Vite integration: https://tailwindcss.com/docs/installation/using-vite
-- Device motion permission and secure-context requirements: https://developer.mozilla.org/en-US/docs/Web/API/DeviceMotionEvent/requestPermission_static
+Committed audio is ready to use. Regenerate fixed prompts from the repository root:
 
-## Database and demo workflow
-The API creates `backend/cabwise.db` on startup and seeds OP1001, MC1001 (CAT 320D), three tasks for the site day (Asia/Kolkata), and one historical sample log. Seeding runs idempotently: existing task progress and sample replays are never reset. Each new day gets new pending tasks; an unfinished task remains visible until finished. Timestamps are returned in UTC with explicit offsets.
-
-These are authored **demo fixtures**, not the original CAT CSV dataset. The implementation PDF did not contain complete original sample tables. Source labels distinguish `demo_fixture` from `sample_replay`. Replayed seatbelt logs leave engine hours, fuel, cycles, and idle time unknown.
-
-1. Open My Day and select OP1001. Operator selection is not authentication.
-2. Tap Start shift. This records the shift and attempts Hindi playback after a user gesture. A reload preserves the shift; enable audio again for the new page session.
-3. Open the trenching pre-dig review, acknowledge that utility clearance is unavailable, and start the demo task.
-4. Return to My Day, refresh, and verify the task remains in progress. Finish it to store actual elapsed time; another task can now start.
-5. Open Safety. Replay the unfastened sample to display the Hindi warning and play it if audio is enabled. Repeating the same sample does not append duplicate log rows or replay the alert. Replay fastened, then unfastened to demonstrate a new transition.
-
-Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline task queues and sample utility proximity are implemented. Incident reporting has a separate durable queue. SwingSense has its own durable motion queue and classifier workflow described below.
-
-`DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment and ignored `backend/.env`. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
-
-This is a demo API with no authentication or access controls; use demo data only.
-
-## Multilingual safety audio
-My Day and Safety offer Hindi, Tamil, English, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, and Punjabi. The browser remembers the selection. Each language includes a synthesized greeting and seatbelt-warning MP3 in `frontend/public/audio/safety`; no installed speech voice or live TTS service is needed during playback. Native text and an English translation remain visible for the warning.
-
-Changing language stops playback and asks the operator to enable audio again. A reload also requires enabling audio. Playback failures keep visual alerts active. Audio files are served alongside the frontend; production builds cache these clips with the app shell; browser storage can still be evicted.
-
-The separate device-check page still tests browser Hindi speech synthesis; that diagnostic does not determine whether bundled safety audio works.
-
-### Generate or update clips
-The committed files are ready to use. Generation is a development-only operation using gTTS 2.5.4 (Google Translate speech) and mutagen for MP3 validation. It sends only the fixed prompt text to the speech service and does not run as part of deployment or normal app use.
-
-From the repository root:
 ```powershell
 backend/.venv/Scripts/python.exe -m pip install --target tmp/audio-tools -r scripts/requirements-audio.txt
 backend/.venv/Scripts/python.exe scripts/generate-safety-audio.py --tools-dir tmp/audio-tools
+backend/.venv/Scripts/python.exe scripts/generate-coach-audio.py --force
 ```
 
-Use `--language pa-IN` to regenerate Punjabi only. The generator hashes prompt text into filenames, verifies MP3 duration, and records text, size, and duration in `frontend/src/lib/safetyAudioManifest.json`. Prompt edits require regeneration. Clips are synthesized demo assets; pronunciation has not been independently reviewed by native speakers.
+Generation uses gTTS and mutagen, sends fixed text to the speech service and checks MP3 duration. It is a development operation, not a deployment step. Safety clips use text-hashed filenames; CoachCard has an asset manifest. Regenerate audio after editing its source prompts.
 
-Run `npm.cmd test` from `frontend` to verify asset coverage, text consistency, and playback/error handling without installed voices. Run `npm.cmd run build` to include the clips in the production output.
+From `backend`, regenerate the synthetic motion model or train locally from exported recordings:
 
-References: https://gtts.readthedocs.io/en/stable/module.html and https://github.com/pndurette/gTTS
-
-## SwingSense: steps 5 and 6
-Open `/live` after starting a shift in My Day.
-
-### Try it on a Windows laptop
-1. Choose **Laptop simulator (synthetic)**. This is deliberately separate from real phone input.
-2. Confirm the simulated engine-running checkbox if you want idle estimates. Choose threshold rules or the synthetic demo Random Forest.
-3. Start capture. Hold **dig**, then **swing**, then **dig**, at least 5 seconds each, to see an estimated cycle. The first estimate needs two complete windows.
-4. Stop & save. Check the queue count and expand the latest observation to see CAT-shaped columns. Fuel, engine hours, seatbelt, and safety status remain null.
-5. Disconnect while capturing and stop: the row stays in IndexedDB. Reconnect and press Sync now, or wait for automatic retry. Repeated requests use the same ID and do not create duplicate server rows.
-
-The simulator uses generated samples at real elapsed time. Its visual idle warning threshold is explicitly shortened to 10 seconds; the real phone threshold is 20 minutes of continuous estimated idle. No live machine accuracy is claimed by this demonstration.
-
-### Real phone capture
-Use HTTPS on a sensor-capable phone. A Windows laptop generally cannot provide the required accelerometer readings. Tap Start capture to request motion access. Keep the phone in a consistent orientation and the page visible. Missing permissions/readings produce a useful message; hiding the page or losing sensor readings stops capture. Stationary motion does not prove that an engine is on or off, so idle time requires explicit engine-running confirmation.
-
-The app uses acceleration **including gravity**, interpolates 2-second windows to 50 Hz, and advances windows by 1 second. The displayed Hz is the actual incoming sample rate, not a promise of 50 Hz hardware sampling. Features are mean, population standard deviation, and mean-square energy for each acceleration axis. Gyroscope magnitude aids the rule-based swing estimate when available; absent rotation readings cannot establish a swing using that rule.
-
-Rules are rough demonstration thresholds: total acceleration standard deviation below 0.18 m/s^2 indicates stationary/idle, above 1.5 suggests digging, intermediate motion suggests travel, and gyro magnitude above 18 degrees/s suggests swing. Two successive predictions are required for a stable transition. Only a stable dig -> swing -> dig sequence adds a cycle; intervening idle/travel resets the sequence. These thresholds need calibration on actual machines.
-
-### Record and train
-- While phone capture is running, choose a ground-truth label and record a 15-second take. Repeat at least 3 separate takes for each of idle, dig, swing, and travel. Aim for 10-15 minutes of diverse takes. These are manually labelled demonstrations, not machine-ground-truth data.
-- Export raw recordings as CSV to keep a backup. Each row retains `recording_id`, `source`, label, timestamp, acceleration, and rotation axes. Local takes remain after a refresh.
-- Stop capture and select **Train phone classifier**. This sends only the collected phone takes to the backend, trains a 40-tree Random Forest, saves it, and displays per-class precision, recall, F1, confusion matrix, and sample counts. Simulation takes are excluded.
-- Whole recordings are split by label into training/test groups **before** overlapping windows are created. The held-out share is approximately 20%, with at least one test recording per class. With only 3 takes/class it is 33%.
-- Choose Random Forest and start another capture. The forest is a portable JSON model evaluated locally, including offline after it is cached. Missing/mismatched/low-vote-share models fall back to rules. Vote share is not a calibrated probability or an accuracy claim.
-
-No genuine phone recordings have been collected by the coding agent. The committed demo model is trained only on generated signals and can only be selected for the simulator. A phone model is absent until real phone recordings are supplied. Grouped validation on phone takes still does not establish field accuracy on an excavator.
-
-### Model commands and persistence
-From `backend`, regenerate the synthetic demonstration model:
 ```powershell
 .venv/Scripts/python.exe ml/motion_model.py --demo --output ml/artifacts/demo-model.json
-```
-Train from exported phone CSV:
-```powershell
 .venv/Scripts/python.exe ml/motion_model.py --input path/to/phone-recordings.csv --output ml/artifacts/phone-model.json
 ```
-The CLI phone-model file is Git-ignored and supports local SQLite workflows. API-trained phone models are stored in PostgreSQL on deployment; no model disk is needed. The bundled synthetic model remains available from the source tree. JSON avoids loading uploaded pickle files.
 
-Motion drafts are checkpointed after each complete window, then finalized every 60 observed seconds or on stop. Drafts are recovered on reload in the same tab; finalized queue entries are shared between tabs. The last not-yet-processed sensor window can be lost on abrupt closure. Partial labelled takes are saved on normal stop/navigation if they have at least 2 seconds; abrupt closure can lose an unfinished take. Production builds cache the app shell and bundled audio after the first online visit.
+The CLI phone-model file is Git-ignored and used by the local SQLite workflow. Use in-app API training on PostgreSQL deployments, where trained phone models persist in the database.
 
-### Motion API
-| Endpoint | Behaviour |
-| --- | --- |
-| `POST /api/motion/ingest` | Validates and idempotently saves an observation batch and CAT-shaped machine log. |
-| `GET /api/motion/recent?operator_id=OP1001` | Latest 10 saved batches, with source/classifier metadata. |
-| `GET /api/motion/model?source=phone` | Trained phone forest; 404 until trained. Use `source=simulation` for the labelled demo forest. |
-| `POST /api/motion/train` | Trains from 12-100 phone recordings (at least 3/class; at most 100,000 samples). |
+## Remaining boundaries
 
-Run the backend integration/training tests and `npm.cmd test` in frontend. Tests use temporary databases; they never reset demo tasks or train the actual phone-model artifact.
+- No production authentication/authorization, ECU integration or verified utility dataset.
+- No automatic import of historical SQLite records into Supabase.
+- Genuine phone recordings and machine-mounted field validation must be collected separately.
+- Time predictions are synthetic planning demonstrations, not validated operating targets.
+- Coaching is learning support, not certification or a substitute for manufacturer instructions and authorised site procedures.
+- Native-speaker audio review and complete phone acceptance remain manual.
 
+## Further documentation
 
-## Insights and incident reporting
-The next milestone adds explainable operational insights at `/insights` and photo-capable incident reporting at `/incidents`. Reports persist in IndexedDB before upload, retry with a stable ID, and sync across routes while the app remains open. Machine-log sources are kept separate; missing telemetry remains unknown.
-
-See [manual checks and API details](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md). CoachCard, synthetic task-time prediction, sample utility mapping, offline task updates, handover and supervisor aggregation are implemented. See [steps 9 and 10 manual checks](docs/COMPANION_MANUAL_CHECKS.md) for setup, API details and acceptance checks.
-
-For the complete dashboard setup, environment variables, free-versus-persistent storage options, and phone checks, see [Deployment guide](docs/DEPLOYMENT.md).
-
-## CoachCard and task-time estimation
-
-Open Training for cached Hindi lessons, spoken quizzes and persisted learning progress. Set backend-only `GEMINI_API_KEY` to enable Gemini drafts; template lessons work without it. Open Time estimate for synthetic Gradient Boosting predictions, a planning interval, held-out evaluation and Add to My Day. The production app also provides a cached offline shell, ordered task/quiz queues, DigSafe sample proximity mapping, Supervisor and Shift handover. See [manual checks](docs/COMPANION_MANUAL_CHECKS.md).
+- [Deployment guide](docs/DEPLOYMENT.md)
+- [CoachCard, estimates and companion checks](docs/COMPANION_MANUAL_CHECKS.md)
+- [SwingSense manual checks](docs/SWINGSENSE_MANUAL_CHECKS.md)
+- [Insights and incident checks](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md)
+- [MVP scope](docs/MVP_SCOPE.md)
+- [Design system](docs/DESIGN_SYSTEM.md)
