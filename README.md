@@ -10,7 +10,7 @@ Read [the MVP scope](docs/MVP_SCOPE.md) for the future feature boundaries and de
 - One active task per operator and machine; duplicate requests preserve the original timestamp.
 - Demo pre-dig acknowledgement before trenching starts (no mapped utility checks yet).
 - Sample-data seatbelt replay with a visual warning and Hindi audio when a device voice is available.
-- PostgreSQL/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, completions, and trained phone models, with SQLite fallback locally. Operator training workflows remain unimplemented.
+- PostgreSQL/SQLModel tables for operators, machines, tasks, shifts, machine logs, incidents, lessons, completions, and trained phone models, with SQLite fallback locally. CoachCard lessons and quiz completions are implemented.
 - FastAPI health endpoint, frontend connection indicator, and retry.
 - Tap-to-run motion, GPS, and Hindi speech checks; no sensor data uploads.
 - Deployment configuration for Vercel and Render.
@@ -68,7 +68,7 @@ Open `/device-check` on the intended Android phone over HTTPS. An HTTP LAN addre
 - Tap Check motion, grant permission if requested, move the phone, and verify changing acceleration values. Stop listening; navigate away and back.
 - Tap Check location and verify coordinates and the reported accuracy. Permission denial should show a useful message.
 - Tap Play Hindi greeting and confirm audible, intelligible Hindi. If no Hindi voice is installed, the app reports that instead of claiming successful playback.
-- Try audio without connectivity to determine whether the selected device voice works offline. Offline application loading is not implemented yet.
+- Try audio without connectivity to determine whether the selected device voice works offline. Production builds support cached offline loading after one online visit.
 - Check navigation at a narrow phone width and refresh a nested route.
 
 Phone capability checks do not establish activity-classifier accuracy or suitability as a safety system.
@@ -88,7 +88,7 @@ These are authored **demo fixtures**, not the original CAT CSV dataset. The impl
 4. Return to My Day, refresh, and verify the task remains in progress. Finish it to store actual elapsed time; another task can now start.
 5. Open Safety. Replay the unfastened sample to display the Hindi warning and play it if audio is enabled. Repeating the same sample does not append duplicate log rows or replay the alert. Replay fastened, then unfastened to demonstrate a new transition.
 
-Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline task queues and utility proximity are not implemented. Incident reporting has a separate durable queue. SwingSense has its own durable motion queue and classifier workflow described below.
+Unknown or unavailable readings are not treated as safe. The replay API is an explicit demo control, not a connection to a real seatbelt sensor. Offline task queues and sample utility proximity are implemented. Incident reporting has a separate durable queue. SwingSense has its own durable motion queue and classifier workflow described below.
 
 `DATABASE_URL` can override the local SQLite path. Parent directories must already exist. The backend reads process environment and ignored `backend/.env`. To seed manually without changing saved work, run `.venv/Scripts/python.exe seed.py` from `backend`. SQLModel creates missing tables; it does not migrate existing schemas.
 
@@ -97,7 +97,7 @@ This is a demo API with no authentication or access controls; use demo data only
 ## Multilingual safety audio
 My Day and Safety offer Hindi, Tamil, English, Telugu, Kannada, Malayalam, Marathi, Bengali, Gujarati, and Punjabi. The browser remembers the selection. Each language includes a synthesized greeting and seatbelt-warning MP3 in `frontend/public/audio/safety`; no installed speech voice or live TTS service is needed during playback. Native text and an English translation remain visible for the warning.
 
-Changing language stops playback and asks the operator to enable audio again. A reload also requires enabling audio. Playback failures keep visual alerts active. Audio files are served alongside the frontend; full offline application loading and guaranteed offline caching are not implemented yet.
+Changing language stops playback and asks the operator to enable audio again. A reload also requires enabling audio. Playback failures keep visual alerts active. Audio files are served alongside the frontend; production builds cache these clips with the app shell; browser storage can still be evicted.
 
 The separate device-check page still tests browser Hindi speech synthesis; that diagnostic does not determine whether bundled safety audio works.
 
@@ -153,9 +153,9 @@ Train from exported phone CSV:
 ```powershell
 .venv/Scripts/python.exe ml/motion_model.py --input path/to/phone-recordings.csv --output ml/artifacts/phone-model.json
 ```
-The default phone model is Git-ignored. Set `MOTION_MODEL_DIR` to a persistent directory on deployment (separate from the database file). The bundled synthetic model remains available from the source tree. JSON avoids loading uploaded pickle files.
+The CLI phone-model file is Git-ignored and supports local SQLite workflows. API-trained phone models are stored in PostgreSQL on deployment; no model disk is needed. The bundled synthetic model remains available from the source tree. JSON avoids loading uploaded pickle files.
 
-Motion drafts are checkpointed after each complete window, then finalized every 60 observed seconds or on stop. Drafts are recovered on reload in the same tab; finalized queue entries are shared between tabs. The last not-yet-processed sensor window can be lost on abrupt closure. Partial labelled takes are saved on normal stop/navigation if they have at least 2 seconds; abrupt closure can lose an unfinished take. Full offline app-shell loading is still not implemented.
+Motion drafts are checkpointed after each complete window, then finalized every 60 observed seconds or on stop. Drafts are recovered on reload in the same tab; finalized queue entries are shared between tabs. The last not-yet-processed sensor window can be lost on abrupt closure. Partial labelled takes are saved on normal stop/navigation if they have at least 2 seconds; abrupt closure can lose an unfinished take. Production builds cache the app shell and bundled audio after the first online visit.
 
 ### Motion API
 | Endpoint | Behaviour |
@@ -171,6 +171,10 @@ Run the backend integration/training tests and `npm.cmd test` in frontend. Tests
 ## Insights and incident reporting
 The next milestone adds explainable operational insights at `/insights` and photo-capable incident reporting at `/incidents`. Reports persist in IndexedDB before upload, retry with a stable ID, and sync across routes while the app remains open. Machine-log sources are kept separate; missing telemetry remains unknown.
 
-See [manual checks and API details](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md). CoachCard, time prediction, proximity mapping, general offline task support, and supervisor aggregation remain pending.
+See [manual checks and API details](docs/INSIGHTS_INCIDENTS_MANUAL_CHECKS.md). CoachCard, synthetic task-time prediction, sample utility mapping, offline task updates, handover and supervisor aggregation are implemented. See [steps 9 and 10 manual checks](docs/COMPANION_MANUAL_CHECKS.md) for setup, API details and acceptance checks.
 
 For the complete dashboard setup, environment variables, free-versus-persistent storage options, and phone checks, see [Deployment guide](docs/DEPLOYMENT.md).
+
+## CoachCard and task-time estimation
+
+Open Training for cached Hindi lessons, spoken quizzes and persisted learning progress. Set backend-only `GEMINI_API_KEY` to enable Gemini drafts; template lessons work without it. Open Time estimate for synthetic Gradient Boosting predictions, a planning interval, held-out evaluation and Add to My Day. The production app also provides a cached offline shell, ordered task/quiz queues, DigSafe sample proximity mapping, Supervisor and Shift handover. See [manual checks](docs/COMPANION_MANUAL_CHECKS.md).

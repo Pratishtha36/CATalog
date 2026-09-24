@@ -9,7 +9,7 @@ const primaryLinks = [
 ];
 const utilityLinks = [
   ['/incidents', 'Incident reports', ShieldCheck], ['/device-check', 'Device check', Smartphone], ['/estimate', 'Time estimate', Wrench],
-  ['/dashboard', 'Supervisor view', LayoutDashboard],
+  ['/dashboard', 'Supervisor view', LayoutDashboard], ['/dig-safe', 'DigSafe map', ShieldCheck], ['/handover', 'Shift handover', Radio],
 ];
 
 function Brand({ mobile = false }) {

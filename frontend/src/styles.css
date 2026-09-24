@@ -1,1 +1,24 @@
 @import "./styles/theme.css";
+
+.companion-card { background: var(--surface, #e0e5ec); box-shadow: 9px 9px 16px rgba(163,177,198,.6), -9px -9px 16px rgba(255,255,255,.5); border-radius: 32px; padding: clamp(20px, 4vw, 36px); margin: 24px 0; min-width: 0; }
+.companion-card > * + * { margin-top: 16px; }
+.companion-card label { display: block; }
+.companion-card fieldset { min-width: 0; border: 0; padding: 12px 0; }
+.quiz-fields > fieldset { margin: 20px 0; }
+.quiz-choice { display: flex !important; align-items: center; gap: 12px; min-height: 48px; margin: 6px 0; padding: 10px; box-shadow: inset 3px 3px 6px rgba(163,177,198,.6), inset -3px -3px 6px rgba(255,255,255,.5); border-radius: 16px; }
+.quiz-choice input { width: 20px; height: 20px; flex: 0 0 20px; }
+.companion-card pre { overflow: auto; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.companion-card summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-weight: 700; }
+.factor { margin: 14px 0; }
+.factor meter { display: block; width: 100%; height: 20px; }
+.table-scroll { overflow-x: auto; }
+.table-scroll table { width: 100%; border-collapse: collapse; text-align: left; }
+.table-scroll th, .table-scroll td { padding: 12px; vertical-align: top; }
+.table-scroll th { background: rgba(163,177,198,.2); }
+.utility-map { display: block; width: 100%; height: 320px; border-radius: 24px; box-shadow: inset 6px 6px 10px rgba(163,177,198,.6), inset -6px -6px 10px rgba(255,255,255,.5); touch-action: none; }
+.companion-card input[type=range] { width: 100%; min-height: 44px; }
+.proximity-status { padding: 20px; border-radius: 16px; background: rgba(163,177,198,.2); }
+.proximity-status.stop, .proximity-status.warning { background: #f5d9b9; color: #612c0b; }
+.offline-notice { padding: 12px 20px; background: #f6df9c; color: #332700; position: relative; z-index: 60; }
+.offline-notice button { margin-left: 12px; }
+@media (max-width: 600px) { .companion-card .task-actions { flex-direction: column; align-items: stretch; } .table-scroll { font-size: 14px; } }

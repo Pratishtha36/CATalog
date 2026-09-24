@@ -5,14 +5,12 @@ import { checkHealth } from './lib/api';
 import Live from './pages/Live';
 import Insights from './pages/Insights';
 import Incidents from './pages/Incidents';
+import Training from './pages/Training';
+import TimeEstimate from './pages/TimeEstimate';
+import Dashboard from './pages/Dashboard';
+import Handover from './pages/Handover';
 import AppLayout from './components/AppLayout';
 import { WorkspaceProvider, MyDay, SafetyPage, PreDigPage } from './pages/OperatorWorkspace';
-
-const modules = {
-  '/training': ['CoachCard', 'Small lessons. Better habits.', 'Personalised Hindi audio lessons based on your recent work, followed by a short quiz.', 'Lessons and training progress arrive in a later milestone.', BookOpen],
-  '/estimate': ['Time estimate', 'Plan the next task.', 'Task duration estimates using task type, weather, machine age, and recorded operator skill.', 'The prediction model is not connected yet.', Sun],
-  '/dashboard': ['Supervisor', 'Your site, at a glance.', 'Task progress, recent alerts, incidents, and training completion.', 'Fleet totals will appear when operator data is connected.', LayoutDashboard],
-};
 
 function BackendStatus() {
   const [state, setState] = useState('Checking connection');
@@ -27,11 +25,6 @@ function BackendStatus() {
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [attempt]);
   return <button className="connection" onClick={() => setAttempt(attempt + 1)} title="Retry backend connection"><span className={`dot ${state === 'Backend connected' ? 'good' : ''}`} />{state}</button>;
-}
-
-function Module({ config }) {
-  const [title, heading, description, note, Icon] = config;
-  return <><p className="eyebrow">{title.toUpperCase()}</p><h1>{heading}</h1><p className="muted intro">{description}</p><section className="empty-panel"><span className="icon-tile large"><Icon size={34}/></span><span className="badge">Planned module</span><h2>Taking shape, one step at a time.</h2><p>{note}</p><Link className="button primary" to="/device-check">Check phone capabilities <ArrowRight size={17}/></Link>{title === 'Safety' && <Link className="text-link" to="/dig-safe">Explore DigSafe</Link>}</section></>;
 }
 
 function DeviceCheck() {
@@ -106,5 +99,5 @@ function DeviceCheck() {
 }
 
 export default function App() {
-  return <WorkspaceProvider><AppLayout connection={<BackendStatus/>}><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/insights" element={<Insights/>}/><Route path="/incidents" element={<Incidents/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/>{Object.entries(modules).map(([url, config]) => <Route key={url} path={url} element={<Module config={config}/>}/>)}<Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></AppLayout></WorkspaceProvider>;
+  return <WorkspaceProvider><AppLayout connection={<BackendStatus/>}><Routes><Route path="/" element={<MyDay/>}/><Route path="/live" element={<Live/>}/><Route path="/insights" element={<Insights/>}/><Route path="/incidents" element={<Incidents/>}/><Route path="/safety" element={<SafetyPage/>}/><Route path="/dig-safe" element={<PreDigPage/>}/><Route path="/device-check" element={<DeviceCheck/>}/><Route path="/training" element={<Training/>}/><Route path="/estimate" element={<TimeEstimate/>}/><Route path="/dashboard" element={<Dashboard/>}/><Route path="/handover" element={<Handover/>}/><Route path="*" element={<><h1>Page not found</h1><Link className="button primary" to="/">Return to My Day</Link></>}/></Routes></AppLayout></WorkspaceProvider>;
 }

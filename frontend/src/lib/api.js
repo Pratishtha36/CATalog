@@ -2,11 +2,12 @@ const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 export const apiUrl = path => `${base}${path}`;
 
 export async function request(path, options = {}) {
+  const { timeoutMs = 12000, ...fetchOptions } = options;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${base}${path}`, {
-      ...options,
+      ...fetchOptions,
       headers: { 'Content-Type': 'application/json', ...options.headers },
       signal: options.signal || controller.signal,
     });
@@ -26,4 +27,4 @@ export async function checkHealth(signal) {
   return body;
 }
 
-export const post = (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) });
+export const post = (path, body, options = {}) => request(path, { ...options, method: 'POST', body: JSON.stringify(body) });

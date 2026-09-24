@@ -19,9 +19,9 @@ Demonstrate an affordable Hindi-speaking operator companion for older constructi
 - Demo pre-dig acknowledgement before trenching/excavation begins.
 - Sample seatbelt replay with Hindi/visual alerts, never represented as live telemetry.
 
-Authentication, machine ECU telemetry, utility proximity, offline task updates, and lesson generation remain unimplemented. Lesson/completion tables are schema preparation only. Incident reporting and its offline queue are now implemented.
+Authentication and machine ECU telemetry remain outside this MVP. Sample utility proximity, offline task updates, lessons and completions are implemented. Incident reporting and its offline queue are now implemented.
 
-## Target MVP (future milestones)
+## MVP acceptance criteria
 | Feature | Acceptance criterion |
 | --- | --- |
 | My Day | OP1001 sees three tasks and can start/finish one; timestamps persist. |
@@ -46,7 +46,7 @@ One operator (OP1001), one older excavator, one sample worksite, and three tasks
 7. Complete the quiz, show training progress, and request a task estimate.
 8. Show the corresponding supervisor updates.
 
-The fixture is a future demonstration, not current functionality. Accelerated elapsed time, synthetic data, and replayed telemetry must be visible as demo modes.
+Use the manual checks to rehearse this demonstration. Accelerated elapsed time, synthetic data, and replayed telemetry must be visible as demo modes.
 
 ## Data and product boundaries
 - Phone motion does not measure fuel consumption or seatbelt status. Missing values remain unknown.
@@ -71,3 +71,6 @@ React + Vite + React Router + Tailwind; FastAPI. SQLite/SQLModel is implemented.
 
 ## Current milestone: operational insights and incident reporting
 Explainable rules with source-separated machine data, evidence, record coverage, and task overruns. Incident/near-miss/unsafe-condition forms with optional photo, durable local saving, cross-route background sync, exact-retry protection, and server history/photo retrieval. See INSIGHTS_INCIDENTS_MANUAL_CHECKS.md.
+
+## Steps 9 and 10 and remaining demo modules
+Implemented CoachCard, synthetic task-time estimation, sample utility map/proximity, offline task/quiz sync and app-shell caching, supervisor aggregation and shift handover. See COMPANION_MANUAL_CHECKS.md for implementation boundaries and remaining physical-phone/live-provider validation. Quiz progress does not certify operating skill.

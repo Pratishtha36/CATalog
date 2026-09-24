@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { request } from '../lib/api';
 import { useOperatorWorkspace } from './OperatorWorkspace';
 
@@ -25,7 +26,7 @@ export default function Insights() {
     {data && <><div className="day-summary"><div><AlertTriangle/><strong>{data.flags.length}</strong><span>Flags to review</span></div><div><CheckCircle2/><strong>{data.log_count}</strong><span>Selected-source records</span></div><div><CheckCircle2/><strong>{data.completed_task_count}</strong><span>Completed tasks reviewed</span></div></div>
       <p className="small-note">Updated {new Date(data.generated_at).toLocaleString()}. {data.range_start ? `Machine records: ${new Date(data.range_start).toLocaleString()} to ${new Date(data.range_end).toLocaleString()}.` : 'No machine records for this source.'} Review includes at most 200 machine records and 100 completed tasks.</p>
       <section className="insight-coverage"><h2>Available measurements</h2><p className="small-note">Idle: {data.coverage.idle} records · Fuel per cycle: {data.coverage.fuel_per_cycle} records · Seatbelt: {data.coverage.seatbelt} records. Missing measurements are unknown; no flags does not mean the machine is safe.</p></section>
-      <div className="insight-list">{data.flags.map(flag => <article className="insight-card" key={flag.id}><div className="section-heading"><h2>{flag.title}</h2><span className="badge">{flag.severity}</span></div><p>{flag.reason}</p><p className="small-note">{flag.action}</p><details className="motion-details"><summary>View supporting data</summary><pre>{JSON.stringify(flag.evidence, null, 2)}</pre></details></article>)}</div>
+      <div className="insight-list">{data.flags.map(flag => <article className="insight-card" key={flag.id}><div className="section-heading"><h2>{flag.title}</h2><span className="badge">{flag.severity}</span></div><p>{flag.reason}</p><p className="small-note">{flag.action}</p><Link className="button secondary" to={`/training?source=${source}`}>Open CoachCard</Link><details className="motion-details"><summary>View supporting data</summary><pre>{JSON.stringify(flag.evidence, null, 2)}</pre></details></article>)}</div>
       {!data.flags.length && <section className="empty-panel"><CheckCircle2 size={36}/><h2>No threshold flags in these records.</h2><p>Review data coverage above. New observations appear after they have synced.</p></section>}</>}
   </>;
 }

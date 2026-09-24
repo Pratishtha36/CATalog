@@ -5,6 +5,8 @@ import { post, request } from '../lib/api';
 import { SAFETY_LANGUAGES, LANGUAGE_STORAGE_KEY, getSafetyLanguage } from '../lib/safetyAudio';
 import audioManifest from '../lib/safetyAudioManifest.json';
 import { createSafetyAudioPlayer } from '../lib/safetyAudioPlayer';
+import { offlineStore, projectTasks } from '../lib/offlineStore';
+import DigSafety from './DigSafety';
 
 const Workspace = createContext(null);
 export const useOperatorWorkspace = () => useContext(Workspace);
@@ -18,6 +20,8 @@ export function WorkspaceProvider({ children }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [offlineNotice, setOfflineNotice] = useState('');
+  const [pending, setPending] = useState([]);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [languageCode, setLanguageCode] = useState(() => {
     try { return getSafetyLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY)).code; }
@@ -27,6 +31,7 @@ export function WorkspaceProvider({ children }) {
   const [voiceMessage, setVoiceMessage] = useState('Safety audio is off until you enable it.');
   const busyRef = useRef(false);
   const generation = useRef(0);
+  const refreshing = useRef(false);
   const mounted = useRef(false);
   const lastAlert = useRef(null);
   const playerRef = useRef(null);
@@ -40,27 +45,40 @@ export function WorkspaceProvider({ children }) {
   }
 
   async function refresh(id = operatorId) {
+    if (refreshing.current) return;
+    refreshing.current = true;
     const version = ++generation.current;
     try {
-      const query = `?operator_id=${encodeURIComponent(id)}`;
-      const [people, tasks, shift, safety] = await Promise.all([
-        request('/api/operators'), request(`/api/tasks/today${query}`),
-        request(`/api/shifts/current${query}`), request(`/api/safety/status${query}`),
-      ]);
+      if (!navigator.onLine) throw new Error('Offline');
+      await offlineStore.sync(post);
+      await request(`/api/tasks/today?operator_id=${encodeURIComponent(id)}`);
+      const pack = await request(`/api/offline-pack?operator_id=${encodeURIComponent(id)}`);
+      await offlineStore.db.packs.put(pack);
+      await offlineStore.db.lessons.put({ operator_id: id, ...pack.training });
+      const queued = await offlineStore.db.queue.where('operator_id').equals(id).sortBy('created_at');
       if (!mounted.current || version !== generation.current) return;
-      setOperators(people);
-      setData({ ...tasks, ...shift, safety });
+      setOperators(pack.operators); setPending(queued);
+      setData(projectTasks(pack, queued)); setOfflineNotice('');
       setError('');
     } catch (failure) {
-      if (mounted.current && version === generation.current) setError(failure.message);
-    }
+      const pack = await offlineStore.db.packs.get(id).catch(() => null);
+      const queued = await offlineStore.db.queue.where('operator_id').equals(id).sortBy('created_at').catch(() => []);
+      if (mounted.current && version === generation.current) {
+        if (pack) {
+          setOperators(pack.operators); setData(projectTasks(pack, queued)); setPending(queued); setError('');
+          setOfflineNotice(`Using cached data from ${new Date(pack.cached_at).toLocaleString()}. Safety status is historical; task changes will sync when connected.`);
+        } else setError(failure.message);
+      }
+    } finally { refreshing.current = false; }
   }
 
   useEffect(() => {
     mounted.current = true;
     refresh(operatorId);
     const interval = setInterval(() => { if (!busyRef.current) refresh(operatorId); }, 10000);
-    return () => { mounted.current = false; generation.current++; clearInterval(interval); };
+    const online = () => refresh(operatorId);
+    window.addEventListener('online', online);
+    return () => { mounted.current = false; generation.current++; clearInterval(interval); window.removeEventListener('online', online); };
   }, [operatorId]);
 
   useEffect(() => () => playerRef.current.stop(), []);
@@ -112,7 +130,16 @@ export function WorkspaceProvider({ children }) {
     setBusy(true);
     generation.current++;
     try {
-      await post(path, { operator_id: operatorId, ...extra });
+      const match = path.match(/^\/api\/tasks\/([^/]+)\/(start|finish)$/);
+      if (path === '/api/shifts/start' || match) {
+        const payload = { id: crypto.randomUUID(), operator_id: operatorId, action: match ? `task_${match[2]}` : 'shift_start',
+          task_id: match ? match[1] : null, occurred_at: new Date().toISOString(), pre_dig_acknowledged: !!extra.pre_dig_acknowledged };
+        await offlineStore.saveTask(payload);
+        const pack = await offlineStore.db.packs.get(operatorId);
+        const queued = await offlineStore.db.queue.where('operator_id').equals(operatorId).sortBy('created_at');
+        if (pack) setData(projectTasks(pack, queued));
+        setPending(queued);
+      } else await post(path, { operator_id: operatorId, ...extra });
       await refresh();
       return true;
     } catch (failure) {
@@ -135,7 +162,16 @@ export function WorkspaceProvider({ children }) {
   }
 
   return <Workspace.Provider value={{ data, operators, operatorId, selectOperator, refresh, error, busy, mutate,
-    enableAudio, audioEnabled, voiceMessage, language, selectLanguage }}>{children}</Workspace.Provider>;
+    enableAudio, audioEnabled, voiceMessage, language, selectLanguage }}>
+    {offlineNotice && <div className="offline-notice" role="status">{offlineNotice}</div>}
+    {!!pending.length && <div className="offline-notice" role="status">{pending.length} changes waiting to sync. {pending.find(row => row.error)?.error}
+      <button className="text-link" onClick={() => refresh()}>Retry sync</button>
+      {pending.some(row => row.error) && <button className="text-link" onClick={async () => {
+        if (window.confirm('Discard this operator’s queued task and quiz changes and reload server state?')) {
+          await offlineStore.db.queue.where('operator_id').equals(operatorId).delete(); await refresh();
+        }
+      }}>Review conflict: discard queued changes</button>}
+    </div>}{children}</Workspace.Provider>;
 }
 
 function ErrorBanner() {
@@ -216,12 +252,12 @@ export function MyDay() {
       {task.status === 'in_progress' && <button className="button secondary" disabled={busy || !!error} onClick={() => mutate(`/api/tasks/${task.task_id}/finish`)}>Finish task <CheckCircle2 size={16}/></button>}
       {task.status === 'pending' && (!data.shift || active) && <span className="small-note">{!data.shift ? 'Start your shift first.' : 'Finish the active task first.'}</span>}
       </div></div></article>)}</div><SafetyCard/></>}
-    <p className="footnote">Tasks and timings are saved to the backend. Offline task updates arrive in a later milestone.</p><Link className="text-link" to="/device-check">Check phone sensors and Hindi audio</Link>
+    <p className="footnote">Task changes save on this device first, then sync with original timestamps. Keep this page open to sync. Add activity and sample replay require a connection.</p><Link className="text-link" to="/device-check">Check phone sensors and Hindi audio</Link>
   </>;
 }
 
 export function SafetyPage() {
-  return <><p className="eyebrow">BASIC SAFETY</p><h1>Make the check part of your shift.</h1><p className="muted intro">Replay a sample seatbelt status to see the alert flow. This demo has no live machine connection.</p><ErrorBanner/><ShiftPanel/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Incident and near-miss reporting</h3><p>Record an observation with an optional photo. Reports save locally and sync when connected.</p></div><Link className="button primary" to="/incidents">Report an incident</Link></section><SafetyCard controls/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Pre-dig review</h3><p>Trenching tasks open a demo acknowledgement before they can start. Utility mapping is planned for a later step. Incident reporting is available now.</p><Link className="text-link" to="/">Review today’s tasks</Link></div></section></>;
+  return <><p className="eyebrow">BASIC SAFETY</p><h1>Make the check part of your shift.</h1><p className="muted intro">Replay a sample seatbelt status to see the alert flow. This demo has no live machine connection.</p><ErrorBanner/><ShiftPanel/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Incident and near-miss reporting</h3><p>Record an observation with an optional photo. Reports save locally and sync when connected.</p></div><Link className="button primary" to="/incidents">Report an incident</Link></section><SafetyCard controls/><section className="shift-panel"><ShieldCheck size={24}/><div><h3>Pre-dig review</h3><p>Trenching tasks open a demo acknowledgement before they can start. DigSafe includes a sample utility map, simulated position and optional phone GPS. It does not provide excavation clearance.</p><Link className="text-link" to="/">Review today’s tasks</Link></div></section></>;
 }
 
 export function PreDigPage() {
@@ -232,7 +268,7 @@ export function PreDigPage() {
   const task = data?.tasks.find(item => item.task_id === taskId);
   const active = data?.tasks.some(item => item.status === 'in_progress');
   useEffect(() => setAcknowledged(false), [taskId]);
-  return <><p className="eyebrow">DIGSAFE · DEMO PRE-DIG REVIEW</p><h1>Pause before the first dig.</h1><p className="muted intro">This step records a demo acknowledgement. Utility data and proximity checks are not connected yet.</p><ErrorBanner/><section className="pre-dig-panel"><ShieldCheck size={36}/><h2>No utility clearance is available</h2><p>The app has not checked underground utilities, bucket clearance, or site conditions. Completing this screen does not establish that excavation is safe.</p>
+  return <><p className="eyebrow">DIGSAFE · DEMO PRE-DIG REVIEW</p><h1>Pause before the first dig.</h1><p className="muted intro">Review the sample utility map and record your pre-dig acknowledgement.</p><DigSafety/><ErrorBanner/><section className="pre-dig-panel"><ShieldCheck size={36}/><h2>No utility clearance is available</h2><p>The app has not checked underground utilities, bucket clearance, or site conditions. Completing this screen does not establish that excavation is safe.</p>
     {!data && !error && <p role="status">Loading task…</p>}
     {task?.status === 'pending' && ['trenching', 'excavation'].includes(task.task_type) ? <><p><strong>{task.task_type}</strong> · {task.location_name}</p><label className="acknowledgement"><input type="checkbox" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)}/>I understand this is a demo workflow and does not provide utility clearance.</label><button className="button primary" disabled={!acknowledged || !data.shift || active || busy || !!error} onClick={() => mutate(`/api/tasks/${task.task_id}/start`, { pre_dig_acknowledged: true })}>Acknowledge and start demo task <ArrowRight size={16}/></button>{!data.shift && <p className="small-note">Start your shift from My Day first.</p>}{active && <p className="small-note">Finish your active task before starting this one.</p>}</> : <p>{task ? `This task is ${names[task.status]?.toLowerCase()}.` : 'Select a trenching task from My Day to open its pre-dig review.'}</p>}
     <Link className="text-link" to="/">Back to My Day</Link></section></>;

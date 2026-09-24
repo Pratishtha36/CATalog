@@ -16,6 +16,8 @@ from models import Machine, MachineLog, Operator, Shift, Task, utcnow
 from seed import seed_demo
 from motion import build_motion_router
 from operations import build_operations_router
+from companion import build_companion_router, generate_lessons, GenerateInput
+from offline import build_offline_router
 
 
 class OperatorAction(BaseModel):
@@ -57,6 +59,7 @@ def create_app(database_url=None, model_dir=None):
     async def lifespan(app):
         initialize_schema(engine)
         seed_demo(engine)
+        generate_lessons(engine, GenerateInput(operator_id='OP1001'), use_ai=False)
         yield
         engine.dispose()
 
@@ -236,6 +239,8 @@ def create_app(database_url=None, model_dir=None):
 
     app.include_router(build_motion_router(engine, model_dir))
     app.include_router(build_operations_router(engine))
+    app.include_router(build_companion_router(engine))
+    app.include_router(build_offline_router(engine))
     return app
 
 

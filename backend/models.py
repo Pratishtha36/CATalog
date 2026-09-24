@@ -123,3 +123,18 @@ class MotionModel(SQLModel, table=True):
     id: str = Field(primary_key=True)
     artifact: dict = Field(sa_column=Column(JSON, nullable=False))
     updated_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
+
+
+class LessonDetails(SQLModel, table=True):
+    __tablename__ = 'lesson_details'
+    id: str = Field(primary_key=True, foreign_key='lessons.id')
+    evidence: dict = Field(sa_column=Column(JSON, nullable=False))
+    source: str
+
+
+class SyncReceipt(SQLModel, table=True):
+    __tablename__ = 'sync_receipts'
+    id: str = Field(primary_key=True)
+    payload: dict = Field(sa_column=Column(JSON, nullable=False))
+    result: dict = Field(sa_column=Column(JSON, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
